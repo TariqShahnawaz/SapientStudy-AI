@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyMind AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="light">
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class='bx bxs-key'></i> Setup API Key</h2>
+            </div>
+            <div class="modal-body">
+                <p>Welcome! To use StudyMind AI, please enter your Google Gemini API Key.</p>
+                <div class="input-group">
+                    <label for="apiKeyInput">Gemini API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+                </div>
+                <p class="small-text">Your key is stored only in this browser's local storage and is sent directly to Google — never to any other server. For production use, consider proxying requests through a backend so the key isn't visible in this browser.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="saveApiKeyBtn" class="btn primary-btn full-width">Save Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal history-modal">
+            <div class="modal-header">
+                <h2><i class='bx bx-history'></i> Generation History</h2>
+                <button id="closeHistoryBtn" class="icon-btn"><i class='bx bx-x'></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="history-search">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="historySearchInput" placeholder="Search history...">
+                </div>
+                <div id="historyList"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="clearHistoryBtn" class="btn danger-btn full-width">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Drawer -->
+    <div id="settingsOverlay" class="modal-overlay">
+        <div class="drawer">
+            <div class="modal-header">
+                <h2><i class='bx bxs-cog'></i> Settings</h2>
+                <button id="closeSettingsBtn" class="icon-btn"><i class='bx bx-x'></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <label class="settings-label">Appearance</label>
+                    <div class="theme-toggle-row">
+                        <span>Dark mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <label class="settings-label" for="modelSelect">Model</label>
+                    <select id="modelSelect" class="select-input">
+                        <option value="gemini-3.6-flash">gemini-3.6-flash (recommended)</option>
+                        <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                        <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (fastest)</option>
+                        <option value="custom">Custom model name...</option>
+                    </select>
+                    <input type="text" id="customModelInput" class="select-input hidden" placeholder="Enter exact model id">
+                </div>
+
+                <div class="settings-section">
+                    <label class="settings-label">API Key</label>
+                    <button id="changeKeyBtn" class="btn secondary-btn full-width"><i class='bx bxs-key'></i> Change API Key</button>
+                </div>
+
+                <div class="settings-section">
+                    <label class="settings-label">Data</label>
+                    <button id="clearHistoryFromSettingsBtn" class="btn danger-btn full-width"><i class='bx bx-trash'></i> Clear History</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">
+                <div class="logo-icon"><i class='bx bxs-graduation'></i></div>
+                <div>
+                    <h1>StudyMind AI</h1>
+                    <span class="watermark-badge">Built by <span>Akhilesh Kachhwaha</span></span>
+                </div>
+            </div>
+            <div class="topbar-actions">
+                <button id="viewHistoryBtn" class="topbar-btn"><i class='bx bx-history'></i><span>History</span></button>
+                <button id="openSettingsBtn" class="topbar-btn"><i class='bx bxs-cog'></i><span>Settings</span></button>
+            </div>
+        </header>
+
+        <nav class="sidebar-nav feature-nav">
+            <button class="nav-item active" data-feature="summarizer" data-color="tile-a">
+                <i class='bx bx-notepad'></i><span>Note Summarizer</span>
+            </button>
+            <button class="nav-item" data-feature="explainer" data-color="tile-b">
+                <i class='bx bx-brain'></i><span>Concept Explainer</span>
+            </button>
+            <button class="nav-item" data-feature="quiz" data-color="tile-c">
+                <i class='bx bx-task'></i><span>Quiz Generator</span>
+            </button>
+            <button class="nav-item" data-feature="improver" data-color="tile-d">
+                <i class='bx bx-edit-alt'></i><span>Answer Improver</span>
+            </button>
+            <button class="nav-item" data-feature="scheduler" data-color="tile-e">
+                <i class='bx bx-calendar-star'></i><span>Schedule Maker</span>
+            </button>
+            <button class="nav-item" data-feature="flashcards" data-color="tile-f">
+                <i class='bx bx-layer'></i><span>Flashcard Maker</span>
+                <span class="new-badge">NEW</span>
+            </button>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div>
+                    <h2 id="featureTitle">Note Summarizer</h2>
+                    <p id="featureDescription">Condense your long study notes into key bullet points.</p>
+                </div>
+            </header>
+
+            <div id="difficultyRow" class="chip-row hidden">
+                <span class="chip-row-label">Explain like I'm:</span>
+                <button class="chip active" data-level="A curious 10-year-old (ELI5)">ELI5</button>
+                <button class="chip" data-level="a first-year college student">Standard</button>
+                <button class="chip" data-level="an advanced student preparing for an exam">Advanced</button>
+            </div>
+
+            <div class="workspace">
+                <div class="input-section panel-block">
+                    <div class="input-header">
+                        <label for="userInput" class="section-label">Your Content</label>
+                        <span id="charCount" class="char-count">0 characters</span>
+                    </div>
+                    <textarea id="userInput" placeholder="Paste your notes or concepts here..."></textarea>
+
+                    <div class="action-bar">
+                        <div id="errorMessage" class="error-msg"></div>
+                        <div class="action-bar-right">
+                            <span class="kbd-hint">Ctrl + Enter to generate</span>
+                            <button id="generateBtn" class="btn primary-btn btn-lg">
+                                <i class='bx bx-sparkles'></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="output-section panel-block">
+                    <div class="output-header">
+                        <label class="section-label">AI Output</label>
+                        <div class="output-actions">
+                            <button id="regenerateBtn" class="icon-btn" title="Regenerate" disabled><i class='bx bx-refresh'></i></button>
+                            <button id="copyBtn" class="icon-btn" title="Copy to Clipboard" disabled><i class='bx bx-copy'></i></button>
+                            <div class="export-dropdown">
+                                <button id="exportBtn" class="icon-btn" title="Export" disabled><i class='bx bx-download'></i></button>
+                                <div id="exportMenu" class="export-menu hidden">
+                                    <button data-format="txt">Export as .txt</button>
+                                    <button data-format="md">Export as .md</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="loadingIndicator" class="loading-container hidden">
+                        <div class="spinner"></div>
+                        <p>Thinking...</p>
+                    </div>
+
+                    <div id="outputContainer" class="output-container empty">
+                        <div class="empty-state">
+                            <i class='bx bx-ghost'></i>
+                            <p>Output will appear here once generated.</p>
+                        </div>
+                    </div>
+
+                    <div id="flashcardContainer" class="flashcard-container hidden"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile bottom nav -->
+    <nav class="mobile-nav">
+        <button class="mobile-nav-item active" data-feature="summarizer"><i class='bx bx-notepad'></i></button>
+        <button class="mobile-nav-item" data-feature="explainer"><i class='bx bx-brain'></i></button>
+        <button class="mobile-nav-item" data-feature="quiz"><i class='bx bx-task'></i></button>
+        <button class="mobile-nav-item" data-feature="improver"><i class='bx bx-edit-alt'></i></button>
+        <button class="mobile-nav-item" data-feature="flashcards"><i class='bx bx-layer'></i></button>
+        <button class="mobile-nav-item" id="mobileMoreBtn"><i class='bx bx-dots-horizontal-rounded'></i></button>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
