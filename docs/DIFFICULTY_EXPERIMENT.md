@@ -25,34 +25,39 @@ Multicollinearity occurs when input variables are strongly related and can make 
 
 ## Participant ratings
 
+Ratings have not yet been collected. Enter scores from 3–5 people after running the blinded quiz review; do not substitute estimated ratings.
+
 | Sample | Selected difficulty | Participant 1 (1–5) | Participant 2 | Participant 3 | Participant 4 | Participant 5 | Average |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Easy |  |  |  |  |  |  |
-| 1 | Medium |  |  |  |  |  |  |
-| 1 | Hard |  |  |  |  |  |  |
-| 2 | Easy |  |  |  |  |  |  |
-| 2 | Medium |  |  |  |  |  |  |
-| 2 | Hard |  |  |  |  |  |  |
-| 3 | Easy |  |  |  |  |  |  |
-| 3 | Medium |  |  |  |  |  |  |
-| 3 | Hard |  |  |  |  |  |  |
+| 1 | Easy | Pending | Pending | Pending | Pending | Pending | Pending |
+| 1 | Medium | Pending | Pending | Pending | Pending | Pending | Pending |
+| 1 | Hard | Pending | Pending | Pending | Pending | Pending | Pending |
+| 2 | Easy | Pending | Pending | Pending | Pending | Pending | Pending |
+| 2 | Medium | Pending | Pending | Pending | Pending | Pending | Pending |
+| 2 | Hard | Pending | Pending | Pending | Pending | Pending | Pending |
+| 3 | Easy | Pending | Pending | Pending | Pending | Pending | Pending |
+| 3 | Medium | Pending | Pending | Pending | Pending | Pending | Pending |
+| 3 | Hard | Pending | Pending | Pending | Pending | Pending | Pending |
 
 ## Topic-label coverage check
 
+Expected topics below are derived from the sample notes. Generated labels and coverage findings require the nine actual Gemini quiz outputs and have not been assessed yet.
+
 | Sample / difficulty | Topics expected from notes | Topics represented in generated labels | Missing / unsupported concepts |
 | --- | --- | --- | --- |
-| 1 / Easy |  |  |  |
-| 1 / Medium |  |  |  |
-| 1 / Hard |  |  |  |
-| 2 / Easy |  |  |  |
-| 2 / Medium |  |  |  |
-| 2 / Hard |  |  |  |
-| 3 / Easy |  |  |  |
-| 3 / Medium |  |  |  |
-| 3 / Hard |  |  |  |
+| 1 / Easy | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals | Not generated | Not assessed |
+| 1 / Medium | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals | Not generated | Not assessed |
+| 1 / Hard | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals | Not generated | Not assessed |
+| 2 / Easy | Linearity; independence; residual normality; homoscedasticity; residual plots | Not generated | Not assessed |
+| 2 / Medium | Linearity; independence; residual normality; homoscedasticity; residual plots | Not generated | Not assessed |
+| 2 / Hard | Linearity; independence; residual normality; homoscedasticity; residual plots | Not generated | Not assessed |
+| 3 / Easy | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | Not generated | Not assessed |
+| 3 / Medium | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | Not generated | Not assessed |
+| 3 / Hard | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | Not generated | Not assessed |
 
 ## Observations and limitations
 
-- Did perceived difficulty rise from Easy to Medium to Hard?
-- Did topic labels cover all major concepts in the notes?
-- Record surprises, prompt adjustments, and limitations:
+- Perceived difficulty trend: Not assessed; participant ratings have not been collected.
+- Topic-label coverage: Not assessed; generated quiz labels have not been collected.
+- Limitations: The experiment needs nine generated quizzes and 3–5 participant ratings per quiz. Run it with the same question count and settings for each difficulty, hide the difficulty labels from participants, and record actual outputs and observations before drawing conclusions.
+- Surprises, prompt adjustments, and other observations: Pending experiment.
