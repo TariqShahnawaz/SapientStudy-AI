@@ -7,7 +7,7 @@
 - [X] Review the repository and Git diff for secrets; no API keys or `.env*` files are committed.
 - [X] Run local mobile Lighthouse and save `docs/lighthouse-local.html`.
 - [X] Run automated axe checks on the main page in light/dark themes and with the Settings dialog open.
-- [ ] Manually inspect full WCAG 2.1 AA behavior, including generated results and mobile navigation.
+- [X] Manually inspect full WCAG 2.1 AA behavior, including generated results and mobile navigation.
 - [X] Manually verify invalid-key, 429, server/network/timeout, malformed-output, and unreadable-upload states.
 - [X] Bump the service-worker cache version when changing cached app assets.
 - [X] Confirm Vercel root is the repository root, framework is Other, build/install command is empty, and output directory is `.`.
@@ -38,6 +38,6 @@ Review Vercel deployment/function logs for delivery issues. This app has no appl
 ## Sign-off
 
 - Release URL: https://sapientstudy-ai.vercel.app/
-- Date: ____________________
-- Name: ____________________
-- Sign-off: __________________________________________________
+- Date: 11/10/2026
+- Name: ___Muhammad Tariq Shah Nawaz___
+- Sign-off:**I reviewed the production deployment and checklist, verified the documented tests and audit results, and approve this release for submission.**
