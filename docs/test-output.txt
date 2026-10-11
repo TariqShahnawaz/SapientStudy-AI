@@ -1,19 +1,25 @@
-> npm run test:coverage
-> vitest run --coverage
+SapientStudy-AI verification
+Date: 2026-10-11
 
-Test Files  6 passed (6)
-Tests       26 passed (26)
+Command: npm run test:coverage
+Vitest: 5.0.3
+Test Files: 6 passed (6)
+Tests: 26 passed (26)
 
-Coverage summary from v8
----------------|---------|----------|---------|---------|-------------------
-File           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
----------------|---------|----------|---------|---------|-------------------
-All files      |   94.73 |    87.28 |   94.44 |   95.59 |
-gemini.js      |   97.22 |     92.3 |     100 |   96.87 | 65
-history.js     |    82.5 |    53.84 |   91.66 |   83.78 | 5,32-33,38-41
-parsers.js     |     100 |      100 |     100 |     100 |
-prompts.js     |     100 |      100 |     100 |     100 |
-ui.js          |   98.07 |    94.44 |   87.5  |     100 | 68
-validation.js  |     100 |      100 |     100 |     100 |
+Coverage summary
+Metric      Covered       Result
+Statements  162 / 171     94.73%
+Branches    103 / 118     87.28%
+Functions   34 / 36       94.44%
+Lines       152 / 159     95.59%
+Configured thresholds: 70% statements, 50% branches
 
-Coverage thresholds configured: 70% statements, 50% branches.
+Command: npm run test:e2e
+Playwright: 4 passed (4)
+- Quiz generation and answer explanation
+- HTTP 429 recovery and Retry
+- API-key dialog Escape dismissal and focus return
+- axe WCAG 2.1 A/AA checks in both themes and Settings dialog
+
+Note: The e2e run printed a dependency deprecation warning for
+OutgoingMessage.prototype._headers; all four tests passed.

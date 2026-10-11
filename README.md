@@ -105,7 +105,7 @@ npm run test:a11y        # axe test only
 npm run lighthouse       # local mobile Lighthouse HTML report
 ```
 
-Latest unit run: **26 tests passed**. Coverage: **94.73% statements, 87.28% branches, 94.44% functions, and 95.59% lines** across the extracted application logic modules. Thresholds are 70% statements and 50% branches. `docs/test-output.txt` contains the recorded coverage run. CI repeats coverage and Playwright checks for pushes and pull requests.
+Latest terminal verification (2026-10-11): **26 unit tests passed**; coverage is **94.73% statements, 87.28% branches, 94.44% functions, and 95.59% lines** across the extracted application logic modules. The Playwright suite also passed **4/4 tests**, including the quiz flow, HTTP 429 retry, dialog keyboard behavior, and axe checks. Thresholds are 70% statements and 50% branches. `docs/test-output.txt` summarizes the terminal results. CI repeats coverage and Playwright checks for pushes and pull requests.
 
 The automated axe check currently passes with **no serious or critical violations** on the main page in light and dark themes and with the Settings dialog open. This is not a substitute for a full manual WCAG 2.1 AA audit.
 
@@ -117,10 +117,10 @@ Scripts are deferred or modules; PDF.js and Mammoth load only when the correspon
 
 | Measurement | Local result | Live Vercel result |
 | --- | --- | --- |
-| Lighthouse mobile Performance | 99/100 | Fill after deployment in `docs/AUDIT_LOG.md` |
-| Lighthouse mobile Accessibility | 94/100 | Fill after deployment in `docs/AUDIT_LOG.md` |
-| Lighthouse Best Practices / SEO | 100/100 / 100/100 | Fill after deployment in `docs/AUDIT_LOG.md` |
-| axe WCAG 2.1 A/AA violations | 0 in automated states listed above | Run against the live URL and record in `docs/AUDIT_LOG.md` |
+| Lighthouse mobile Performance | 99/100 | 94/100 on saved run; a separate run scored 73/100, so performance varies between runs. See `docs/lighthouse-live.html`. |
+| Lighthouse mobile Accessibility | 94/100 | 94/100. |
+| Lighthouse Best Practices / SEO | 100/100 / 100/100 | 100/100 / 100/100. |
+| axe WCAG 2.1 A/AA violations | 0 in automated states listed above | 0 on the main page in light/dark themes and with the Settings dialog open. |
 
 ## Deployment
 

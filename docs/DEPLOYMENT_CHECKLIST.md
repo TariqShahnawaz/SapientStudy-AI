@@ -6,7 +6,8 @@
 - [X] `npm run test:e2e` passes; CI is green for the release commit.
 - [X] Review the repository and Git diff for secrets; no API keys or `.env*` files are committed.
 - [X] Run local mobile Lighthouse and save `docs/lighthouse-local.html`.
-- [X] Run axe checks and manually inspect full WCAG 2.1 AA results, including generated results and mobile navigation.
+- [X] Run automated axe checks on the main page in light/dark themes and with the Settings dialog open.
+- [ ] Manually inspect full WCAG 2.1 AA behavior, including generated results and mobile navigation.
 - [X] Manually verify invalid-key, 429, server/network/timeout, malformed-output, and unreadable-upload states.
 - [X] Bump the service-worker cache version when changing cached app assets.
 - [X] Confirm Vercel root is the repository root, framework is Other, build/install command is empty, and output directory is `.`.
@@ -24,7 +25,7 @@
 - [X] Enter a reviewer-owned Gemini key and try one successful quiz and one ordinary text tool.
 - [X] Verify a rejected request produces a useful error and Retry; confirm API calls are not cached.
 - [X] Verify text upload and confirm unsupported/scanned content gives a clear explanation.
-- [X] Run Lighthouse and axe against the live URL; record actual results in `docs/AUDIT_LOG.md`.
+- [X] Run Lighthouse and axe against the live URL; results are recorded in `docs/AUDIT_LOG.md` and the mobile Lighthouse report is saved as `docs/lighthouse-live.html`.
 
 ## Rollback plan
 
@@ -36,7 +37,7 @@ Review Vercel deployment/function logs for delivery issues. This app has no appl
 
 ## Sign-off
 
-- Release URL: __________________[sapientstudy-ai-git-main-tariqshahnawazs-projects.vercel.app](https://sapientstudy-ai-git-main-tariqshahnawazs-projects.vercel.app/)__________________
-- Date: _________10/11/2026_________
-- Name: _________Muhammad Tariq Shah Nawaz_________
-- Sign-off: Thank you for using. Please leave a review
+- Release URL: https://sapientstudy-ai.vercel.app/
+- Date: ____________________
+- Name: ____________________
+- Sign-off: __________________________________________________
