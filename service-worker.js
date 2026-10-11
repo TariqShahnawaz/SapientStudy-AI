@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sapientstudy-shell-v1';
+const CACHE_NAME = 'sapientstudy-shell-v2';
 const APP_SHELL = [
     './',
     './index.html',

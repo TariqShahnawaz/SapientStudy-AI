@@ -32,6 +32,10 @@ const DOM = {
     charCount: document.getElementById('charCount'),
     errorMessage: document.getElementById('errorMessage'),
     difficultyRow: document.getElementById('difficultyRow'),
+    quizOptions: document.getElementById('quizOptions'),
+    quizDifficulty: document.getElementById('quizDifficulty'),
+    quizQuestionCount: document.getElementById('quizQuestionCount'),
+    showAnswersBtn: document.getElementById('showAnswersBtn'),
 
     outputContainer: document.getElementById('outputContainer'),
     flashcardContainer: document.getElementById('flashcardContainer'),
@@ -65,9 +69,10 @@ const FEATURES = {
     },
     quiz: {
         title: "Quiz Generator",
-        desc: "Generate short, multiple-choice quizzes based on your text.",
+        desc: "Create topic-labelled quizzes with adjustable difficulty and answer explanations.",
         placeholder: "Paste the text you want to be quizzed on...",
-        prompt: "You are an expert AI tutor. Generate a short multiple-choice quiz (3 questions) based on the provided text. Provide the questions, options (A, B, C, D), and then provide the correct answers at the very end.\n\nText:\n"
+        prompt: "",
+        isQuiz: true
     },
     improver: {
         title: "Answer Improver",
@@ -177,6 +182,12 @@ function setupEventListeners() {
     });
 
     DOM.generateBtn.addEventListener('click', handleGenerate);
+    DOM.quizDifficulty.addEventListener('change', () => {
+        if (lastInputUsed && currentFeature === 'quiz') {
+            lastInputUsed = DOM.userInput.value.trim();
+        }
+    });
+    DOM.showAnswersBtn.addEventListener('click', toggleQuizAnswers);
     DOM.retryBtn.addEventListener('click', () => {
         if (lastGenerationInput) handleGenerate(lastGenerationInput);
     });
@@ -370,6 +381,10 @@ function switchFeature(featureKey) {
     DOM.documentInput.value = '';
     DOM.documentStatus.textContent = 'PDF, DOCX, TXT, or MD (max 20 MB)';
     DOM.difficultyRow.classList.toggle('hidden', !config.hasDifficulty);
+    DOM.quizOptions.classList.toggle('hidden', !config.isQuiz);
+    DOM.showAnswersBtn.classList.add('hidden');
+    DOM.showAnswersBtn.setAttribute('aria-expanded', 'false');
+    DOM.showAnswersBtn.textContent = 'Show answers';
 
     updateCharCount();
     resetOutput();
@@ -405,6 +420,9 @@ function resetOutput() {
     `;
     DOM.outputContainer.classList.add('empty');
     currentOutputRaw = '';
+    DOM.showAnswersBtn.classList.add('hidden');
+    DOM.showAnswersBtn.setAttribute('aria-expanded', 'false');
+    DOM.showAnswersBtn.textContent = 'Show answers';
     DOM.copyBtn.disabled = true;
     DOM.exportBtn.disabled = true;
     DOM.regenerateBtn.disabled = true;
@@ -445,7 +463,10 @@ async function handleGenerate(inputOverride = null) {
         currentOutputRaw = resultText;
 
         DOM.loadingIndicator.classList.add('hidden');
-        if (config.isFlashcards) {
+        if (config.isQuiz) {
+            const quiz = parseQuiz(resultText);
+            renderQuiz(quiz);
+        } else if (config.isFlashcards) {
             const cards = parseFlashcards(resultText);
             renderFlashcards(cards);
         } else {
@@ -501,6 +522,64 @@ function stripCodeFences(text) {
         .trim();
 }
 
+function parseQuiz(rawText) {
+    try {
+        const quiz = JSON.parse(stripCodeFences(rawText));
+        if (!Array.isArray(quiz) || quiz.length === 0 || quiz.some(question =>
+            !question ||
+            typeof question.topic !== 'string' || !question.topic.trim() ||
+            typeof question.question !== 'string' || !question.question.trim() ||
+            !question.options || !['A', 'B', 'C', 'D'].every(option =>
+                typeof question.options[option] === 'string' && question.options[option].trim()
+            ) ||
+            !['A', 'B', 'C', 'D'].includes(question.correctAnswer) ||
+            typeof question.explanation !== 'string' || !question.explanation.trim()
+        )) throw new Error('Invalid quiz item');
+        return quiz;
+    } catch {
+        throw new GeminiApiError('invalid_output', 'The AI returned an invalid quiz. Retry to generate it again.');
+    }
+}
+
+function renderQuiz(questions) {
+    DOM.outputContainer.replaceChildren();
+    questions.forEach((item, index) => {
+        const article = document.createElement('article');
+        article.className = 'quiz-question';
+        const topic = document.createElement('p');
+        topic.className = 'quiz-topic';
+        topic.textContent = `Topic: ${item.topic}`;
+        const title = document.createElement('h3');
+        title.textContent = `${index + 1}. ${item.question}`;
+        const options = document.createElement('ol');
+        options.className = 'quiz-options-list';
+        options.type = 'A';
+        for (const key of ['A', 'B', 'C', 'D']) {
+            const option = document.createElement('li');
+            option.textContent = item.options[key];
+            options.appendChild(option);
+        }
+        const answer = document.createElement('p');
+        answer.className = 'quiz-answer hidden';
+        answer.textContent = `Correct answer: ${item.correctAnswer}. ${item.options[item.correctAnswer]} — ${item.explanation}`;
+        article.append(topic, title, options, answer);
+        DOM.outputContainer.appendChild(article);
+    });
+    DOM.showAnswersBtn.classList.remove('hidden');
+    DOM.showAnswersBtn.setAttribute('aria-expanded', 'false');
+    DOM.showAnswersBtn.textContent = 'Show answers';
+    DOM.outputContainer.classList.remove('hidden', 'empty');
+}
+
+function toggleQuizAnswers() {
+    const expanded = DOM.showAnswersBtn.getAttribute('aria-expanded') === 'true';
+    DOM.showAnswersBtn.setAttribute('aria-expanded', String(!expanded));
+    DOM.showAnswersBtn.textContent = expanded ? 'Show answers' : 'Hide answers';
+    DOM.outputContainer.querySelectorAll('.quiz-answer').forEach(answer => {
+        answer.classList.toggle('hidden', expanded);
+    });
+}
+
 function renderFlashcards(cards) {
     DOM.flashcardContainer.classList.remove('hidden');
     DOM.flashcardContainer.innerHTML = '';
@@ -532,6 +611,7 @@ function renderFlashcards(cards) {
 async function callGeminiAPI(userInput, config) {
     let promptTemplate = config.prompt;
     if (config.hasDifficulty) promptTemplate = promptTemplate.replace('{LEVEL}', currentDifficulty);
+    if (config.isQuiz) promptTemplate = buildQuizPrompt();
     const fullPrompt = `${promptTemplate}${userInput}`;
 
     const modelToUse = selectedModel || 'gemini-3.6-flash';
@@ -578,6 +658,17 @@ async function callGeminiAPI(userInput, config) {
         throw new GeminiApiError('blocked', 'Gemini blocked this response for safety reasons. Rephrase your input and retry.', false);
     }
     throw new GeminiApiError('empty_response', 'Gemini returned no usable text. Retry with different input.');
+}
+
+function buildQuizPrompt() {
+    const difficultyDescriptions = {
+        easy: 'Easy: direct recall of facts explicitly stated in the source.',
+        medium: 'Medium: apply concepts from the source to a new but familiar situation.',
+        hard: 'Hard: synthesize multiple ideas and use critical analysis based on the source.'
+    };
+    const count = Number(DOM.quizQuestionCount.value);
+    const difficulty = DOM.quizDifficulty.value;
+    return `You are an expert assessment designer. Create exactly ${count} multiple-choice questions using only the source material below. Difficulty: ${difficultyDescriptions[difficulty] || difficultyDescriptions.medium}\nFor each question, provide a short topic label, question, four options A-D, the correct option letter, and a concise explanation of why it is correct. Return ONLY a valid JSON array, with each item shaped exactly like {"topic":"...","question":"...","options":{"A":"...","B":"...","C":"...","D":"..."},"correctAnswer":"A","explanation":"..."}.\n\nSource material:\n`;
 }
 
 /* History */
@@ -649,7 +740,13 @@ function loadHistoryRecord(record) {
     updateCharCount();
 
     const config = FEATURES[featureKey] || {};
-    if (config.isFlashcards) {
+    if (config.isQuiz) {
+        try {
+            renderQuiz(parseQuiz(record.output));
+        } catch (error) {
+            showError(error.message || 'This saved quiz could not be loaded.');
+        }
+    } else if (config.isFlashcards) {
         renderFlashcards(record.output);
     } else {
         DOM.outputContainer.classList.remove('hidden');
