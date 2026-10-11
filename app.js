@@ -1,9 +1,18 @@
+import { requestGemini, GeminiApiError } from './gemini.js';
+import { parseFlashcards, parseQuiz } from './parsers.js';
+import { buildPrompt } from './prompts.js';
+import { HistoryStore } from './history.js';
+import { MAX_INPUT_LENGTH, validateInput } from './validation.js';
+import { createFlashcard, createToast, renderError, setTheme, updateCharacterCounter } from './ui.js';
+
 const DOM = {
     apiKeyModal: document.getElementById('apiKeyModal'),
     historyModal: document.getElementById('historyModal'),
     settingsOverlay: document.getElementById('settingsOverlay'),
 
     apiKeyInput: document.getElementById('apiKeyInput'),
+    apiKeyError: document.getElementById('apiKeyError'),
+    closeApiKeyBtn: document.getElementById('closeApiKeyBtn'),
     saveApiKeyBtn: document.getElementById('saveApiKeyBtn'),
     changeKeyBtn: document.getElementById('changeKeyBtn'),
     viewHistoryBtn: document.getElementById('viewHistoryBtn'),
@@ -49,8 +58,6 @@ const DOM = {
     customModelInput: document.getElementById('customModelInput'),
 };
 
-const MIN_INPUT_LENGTH = 10;
-const MAX_INPUT_LENGTH = 8000;
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 const FEATURES = {
@@ -58,39 +65,33 @@ const FEATURES = {
         title: "Note Summarizer",
         desc: "Condense your long study notes into key bullet points.",
         placeholder: "Paste your notes here...",
-        prompt: "You are an expert AI tutor. Summarize the following study notes concisely. Use bullet points and highlight the most critical information.\n\nNotes:\n"
     },
     explainer: {
         title: "Concept Explainer",
         desc: "Explain complex topics in simple terms with an example.",
         placeholder: "What concept are you struggling with? (e.g., Quantum Entanglement)",
-        prompt: "You are an expert AI tutor. Explain the following concept clearly, as if explaining to {LEVEL}. Always include an easy-to-understand real-world example.\n\nConcept:\n",
         hasDifficulty: true
     },
     quiz: {
         title: "Quiz Generator",
         desc: "Create topic-labelled quizzes with adjustable difficulty and answer explanations.",
         placeholder: "Paste the text you want to be quizzed on...",
-        prompt: "",
         isQuiz: true
     },
     improver: {
         title: "Answer Improver",
         desc: "Paste your draft answer and get actionable feedback to improve it.",
         placeholder: "Paste your draft answer here (and the question if you want)...",
-        prompt: "You are an expert AI grader and tutor. Review the following draft answer provided by a student. First, provide constructive feedback on what is good and what is missing or incorrect. Then, provide a polished, improved version of the answer.\n\nStudent Answer:\n"
     },
     scheduler: {
         title: "Schedule Maker",
         desc: "Generate a structured study timetable from a list of topics.",
         placeholder: "e.g., I have 3 days to study: Calculus limits, derivatives, and integrals...",
-        prompt: "You are an expert AI study coach. Create a structured, realistic study timetable based on the user's input below. Break it down day-by-day or hour-by-hour depending on the context provided.\n\nUser Constraints & Topics:\n"
     },
     flashcards: {
         title: "Flashcard Maker",
         desc: "Turn your notes into flip-style question and answer flashcards.",
         placeholder: "Paste the notes you want turned into flashcards...",
-        prompt: "You are an expert AI tutor. Create exactly 6 flashcards based on the content below. Respond with ONLY a raw JSON array, no markdown formatting, no code fences, in this exact shape: [{\"q\":\"question text\",\"a\":\"answer text\"}]. Keep each question and answer short and clear.\n\nContent:\n",
         isFlashcards: true
     }
 };
@@ -99,30 +100,29 @@ let currentFeature = 'summarizer';
 let currentDifficulty = "A curious 10-year-old (ELI5)";
 let apiKey = localStorage.getItem('gemini_api_key');
 let selectedModel = localStorage.getItem('study_ai_model') || 'gemini-3.6-flash';
-let generationHistory = JSON.parse(localStorage.getItem('study_ai_history') || '[]');
+const historyStore = new HistoryStore(localStorage);
 let currentOutputRaw = '';
 let lastInputUsed = '';
 let deferredInstallPrompt = null;
 let lastGenerationInput = '';
-
-class GeminiApiError extends Error {
-    constructor(type, message, retryable = true) {
-        super(message);
-        this.name = 'GeminiApiError';
-        this.type = type;
-        this.retryable = retryable;
-    }
-}
+let activeDialog = null;
+let dialogReturnFocus = null;
+const libraryLoads = new Map();
 
 function init() {
     applyTheme(localStorage.getItem('study_ai_theme') || 'light');
     applyModelSetting();
-    if (!apiKey) DOM.apiKeyModal.classList.add('active');
     setupEventListeners();
+    try {
+        historyStore.load();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
     renderHistory();
     setupInteractiveBackground();
     updateCharCount();
     setupPwa();
+    if (!apiKey) openDialog(DOM.apiKeyModal);
 }
 
 function setupPwa() {
@@ -158,20 +158,26 @@ function setupInteractiveBackground() {
 
 function setupEventListeners() {
     DOM.saveApiKeyBtn.addEventListener('click', saveApiKey);
+    DOM.closeApiKeyBtn.addEventListener('click', () => closeDialog(DOM.apiKeyModal));
     DOM.changeKeyBtn.addEventListener('click', () => {
         DOM.apiKeyInput.value = apiKey || '';
-        DOM.settingsOverlay.classList.remove('active');
-        DOM.apiKeyModal.classList.add('active');
+        closeDialog(DOM.settingsOverlay);
+        openDialog(DOM.apiKeyModal, DOM.openSettingsBtn);
     });
-    DOM.viewHistoryBtn.addEventListener('click', () => DOM.historyModal.classList.add('active'));
-    DOM.closeHistoryBtn.addEventListener('click', () => DOM.historyModal.classList.remove('active'));
+    DOM.viewHistoryBtn.addEventListener('click', () => openDialog(DOM.historyModal, DOM.viewHistoryBtn));
+    DOM.closeHistoryBtn.addEventListener('click', () => closeDialog(DOM.historyModal));
     DOM.clearHistoryBtn.addEventListener('click', clearHistory);
     DOM.clearHistoryFromSettingsBtn.addEventListener('click', clearHistory);
     DOM.historySearchInput.addEventListener('input', () => renderHistory(DOM.historySearchInput.value));
 
-    DOM.openSettingsBtn.addEventListener('click', () => DOM.settingsOverlay.classList.add('active'));
-    DOM.closeSettingsBtn.addEventListener('click', () => DOM.settingsOverlay.classList.remove('active'));
-    DOM.settingsOverlay.addEventListener('click', (e) => { if (e.target === DOM.settingsOverlay) DOM.settingsOverlay.classList.remove('active'); });
+    DOM.openSettingsBtn.addEventListener('click', () => openDialog(DOM.settingsOverlay, DOM.openSettingsBtn));
+    DOM.closeSettingsBtn.addEventListener('click', () => closeDialog(DOM.settingsOverlay));
+    [DOM.apiKeyModal, DOM.historyModal, DOM.settingsOverlay].forEach(overlay => {
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) closeDialog(overlay);
+        });
+    });
+    document.addEventListener('keydown', handleDialogKeydown);
     DOM.installAppBtn.addEventListener('click', installApp);
 
     DOM.themeToggle.addEventListener('change', () => applyTheme(DOM.themeToggle.checked ? 'dark' : 'light'));
@@ -181,7 +187,7 @@ function setupEventListeners() {
         localStorage.setItem('study_ai_model', selectedModel);
     });
 
-    DOM.generateBtn.addEventListener('click', handleGenerate);
+    DOM.generateBtn.addEventListener('click', () => handleGenerate());
     DOM.quizDifficulty.addEventListener('change', () => {
         if (lastInputUsed && currentFeature === 'quiz') {
             lastInputUsed = DOM.userInput.value.trim();
@@ -197,9 +203,11 @@ function setupEventListeners() {
     DOM.copyBtn.addEventListener('click', copyToClipboard);
     DOM.exportBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        DOM.exportMenu.classList.toggle('hidden');
+        const expanded = DOM.exportBtn.getAttribute('aria-expanded') === 'true';
+        DOM.exportBtn.setAttribute('aria-expanded', String(!expanded));
+        DOM.exportMenu.classList.toggle('hidden', expanded);
     });
-    document.addEventListener('click', () => DOM.exportMenu.classList.add('hidden'));
+    document.addEventListener('click', closeExportMenu);
     DOM.exportMenu.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', () => exportOutput(btn.getAttribute('data-format')));
     });
@@ -223,15 +231,75 @@ function setupEventListeners() {
             if (feature) switchFeature(feature);
         });
     });
-    DOM.mobileMoreBtn.addEventListener('click', () => DOM.settingsOverlay.classList.add('active'));
+    DOM.mobileMoreBtn.addEventListener('click', () => openDialog(DOM.settingsOverlay, DOM.mobileMoreBtn));
 
     document.querySelectorAll('.chip').forEach(chip => {
         chip.addEventListener('click', () => {
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.chip').forEach(c => {
+                c.classList.remove('active');
+                c.setAttribute('aria-pressed', 'false');
+            });
             chip.classList.add('active');
+            chip.setAttribute('aria-pressed', 'true');
             currentDifficulty = chip.getAttribute('data-level');
         });
     });
+}
+
+function closeExportMenu() {
+    DOM.exportMenu.classList.add('hidden');
+    DOM.exportBtn.setAttribute('aria-expanded', 'false');
+}
+
+function openDialog(overlay, trigger = document.activeElement) {
+    if (activeDialog && activeDialog !== overlay) closeDialog(activeDialog, false);
+    activeDialog = overlay;
+    dialogReturnFocus = trigger;
+    overlay.classList.add('active');
+    const dialog = overlay.querySelector('[role="dialog"]');
+    const initialFocus = dialog.querySelector('input:not([type="hidden"]), select, textarea') ||
+        dialog.querySelector('button:not(:disabled)');
+    (initialFocus || dialog).focus();
+}
+
+function closeDialog(overlay = activeDialog, restoreFocus = true) {
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    if (activeDialog === overlay) activeDialog = null;
+    const focusTarget = dialogReturnFocus === document.body
+        ? document.getElementById('mainContent')
+        : dialogReturnFocus;
+    if (restoreFocus && focusTarget instanceof HTMLElement && focusTarget.isConnected) {
+        focusTarget.focus();
+    }
+    dialogReturnFocus = null;
+}
+
+function handleDialogKeydown(event) {
+    if (!activeDialog) return;
+    if (event.key === 'Escape') {
+        closeDialog();
+        return;
+    }
+    if (event.key !== 'Tab') return;
+    const dialog = activeDialog.querySelector('[role="dialog"]');
+    const focusable = Array.from(dialog.querySelectorAll(
+        'a[href], button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+    )).filter(element => element.getClientRects().length > 0);
+    if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+    }
 }
 
 async function installApp() {
@@ -246,9 +314,7 @@ async function installApp() {
 
 /* Theme */
 function applyTheme(theme) {
-    document.body.setAttribute('data-theme', theme);
-    DOM.themeToggle.checked = theme === 'dark';
-    localStorage.setItem('study_ai_theme', theme);
+    setTheme(document, DOM.themeToggle, theme, localStorage);
 }
 
 /* Model settings */
@@ -276,9 +342,33 @@ function handleModelChange() {
 
 /* Char count / validation feedback */
 function updateCharCount() {
-    const len = DOM.userInput.value.trim().length;
-    DOM.charCount.textContent = `${len} / ${MAX_INPUT_LENGTH} characters`;
-    DOM.charCount.classList.toggle('warn', len > 0 && len < MIN_INPUT_LENGTH);
+    updateCharacterCounter(DOM.userInput, DOM.charCount);
+}
+
+function loadBrowserLibrary(url, globalName) {
+    if (window[globalName]) return Promise.resolve(window[globalName]);
+    if (libraryLoads.has(globalName)) return libraryLoads.get(globalName);
+
+    const load = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = url;
+        script.async = true;
+        script.onload = () => {
+            if (window[globalName]) resolve(window[globalName]);
+            else {
+                libraryLoads.delete(globalName);
+                reject(new Error(`The ${globalName} document reader did not initialize.`));
+            }
+        };
+        script.onerror = () => {
+            script.remove();
+            libraryLoads.delete(globalName);
+            reject(new Error(`Could not load the ${globalName} document reader. Check your internet connection and retry.`));
+        };
+        document.head.appendChild(script);
+    });
+    libraryLoads.set(globalName, load);
+    return load;
 }
 
 async function handleDocumentUpload() {
@@ -305,9 +395,10 @@ async function handleDocumentUpload() {
         let extractedText;
 
         if (extension === 'pdf') {
-            if (typeof pdfjsLib === 'undefined') {
-                throw new Error('PDF reading is unavailable. Check your internet connection and reload the page.');
-            }
+            const pdfjsLib = await loadBrowserLibrary(
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+                'pdfjsLib'
+            );
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
             const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
             const pdf = await loadingTask.promise;
@@ -320,9 +411,10 @@ async function handleDocumentUpload() {
             extractedText = pages.join('\n\n');
             await pdf.destroy();
         } else if (extension === 'docx') {
-            if (typeof mammoth === 'undefined') {
-                throw new Error('Word document reading is unavailable. Check your internet connection and reload the page.');
-            }
+            const mammoth = await loadBrowserLibrary(
+                'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js',
+                'mammoth'
+            );
             const result = await mammoth.extractRawText({ arrayBuffer: buffer });
             extractedText = result.value;
         } else {
@@ -356,13 +448,19 @@ async function handleDocumentUpload() {
 /* API Key */
 function saveApiKey() {
     const key = DOM.apiKeyInput.value.trim();
-    if (key) {
-        apiKey = key;
-        localStorage.setItem('gemini_api_key', apiKey);
-        DOM.apiKeyModal.classList.remove('active');
-        clearError();
-        showToast('API key saved', 'success');
+    if (!key) {
+        DOM.apiKeyError.textContent = 'Enter a Gemini API key to continue.';
+        DOM.apiKeyInput.focus();
+        return;
     }
+    apiKey = key;
+    localStorage.setItem('gemini_api_key', apiKey);
+    DOM.apiKeyError.textContent = '';
+    const returnFocus = dialogReturnFocus;
+    closeDialog(DOM.apiKeyModal, returnFocus !== document.body);
+    if (returnFocus === document.body) DOM.userInput.focus();
+    clearError();
+    showToast('API key saved', 'success');
 }
 
 /* Feature switching */
@@ -371,7 +469,9 @@ function switchFeature(featureKey) {
     const config = FEATURES[featureKey];
 
     document.querySelectorAll('[data-feature]').forEach(item => {
-        item.classList.toggle('active', item.getAttribute('data-feature') === featureKey);
+        const selected = item.getAttribute('data-feature') === featureKey;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-pressed', String(selected));
     });
 
     DOM.featureTitle.textContent = config.title;
@@ -392,21 +492,14 @@ function switchFeature(featureKey) {
 }
 
 function showError(msg, retryable = false) {
-    DOM.errorMessage.textContent = msg;
-    DOM.retryBtn.classList.toggle('hidden', !retryable || !lastGenerationInput);
+    renderError(DOM.errorMessage, DOM.retryBtn, msg, retryable, Boolean(lastGenerationInput));
 }
 function clearError() {
-    DOM.errorMessage.textContent = '';
-    DOM.retryBtn.classList.add('hidden');
+    renderError(DOM.errorMessage, DOM.retryBtn, '', false, false);
 }
 
 function showToast(message, type = 'error') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `<i class='bx ${type === 'success' ? 'bx-check-circle' : 'bx-error-circle'}'></i><span></span>`;
-    toast.querySelector('span').textContent = message;
-    DOM.toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    createToast(document, DOM.toastContainer, message, type);
 }
 
 function resetOutput() {
@@ -414,7 +507,7 @@ function resetOutput() {
     DOM.flashcardContainer.classList.add('hidden');
     DOM.outputContainer.innerHTML = `
         <div class="empty-state">
-            <i class='bx bx-ghost'></i>
+            <i class='bx bx-ghost' aria-hidden="true"></i>
             <p>Output will appear here once generated.</p>
         </div>
     `;
@@ -425,21 +518,14 @@ function resetOutput() {
     DOM.showAnswersBtn.textContent = 'Show answers';
     DOM.copyBtn.disabled = true;
     DOM.exportBtn.disabled = true;
+    closeExportMenu();
     DOM.regenerateBtn.disabled = true;
-}
-
-/* Validation */
-function validateInput(input) {
-    if (!input) return "Please enter some content first.";
-    if (input.length < MIN_INPUT_LENGTH) return `Please enter at least ${MIN_INPUT_LENGTH} characters so the AI has enough to work with.`;
-    if (input.length > MAX_INPUT_LENGTH) return `Please keep your input under ${MAX_INPUT_LENGTH} characters.`;
-    return null;
 }
 
 /* Core generation */
 async function handleGenerate(inputOverride = null) {
     if (DOM.generateBtn.disabled) return;
-    if (!apiKey) { DOM.apiKeyModal.classList.add('active'); return; }
+    if (!apiKey) { openDialog(DOM.apiKeyModal, DOM.generateBtn); return; }
 
     const input = (inputOverride ?? DOM.userInput.value).trim();
     const validationMsg = validateInput(input);
@@ -459,7 +545,7 @@ async function handleGenerate(inputOverride = null) {
 
     try {
         const config = FEATURES[currentFeature];
-        const resultText = await callGeminiAPI(input, config);
+        const resultText = await callGeminiAPI(input);
         currentOutputRaw = resultText;
 
         DOM.loadingIndicator.classList.add('hidden');
@@ -471,7 +557,7 @@ async function handleGenerate(inputOverride = null) {
             renderFlashcards(cards);
         } else {
             DOM.outputContainer.classList.remove('hidden');
-            renderMarkdownSafely(resultText);
+            await renderMarkdownSafely(resultText);
         }
         saveToHistory(config.title, input, resultText);
         DOM.regenerateBtn.disabled = false;
@@ -488,57 +574,30 @@ async function handleGenerate(inputOverride = null) {
 }
 
 /* Safe markdown rendering (XSS-protected) */
-function renderMarkdownSafely(rawText) {
-    if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
-        throw new GeminiApiError('render', 'Secure response rendering is unavailable. Check your connection and retry.');
+async function renderMarkdownSafely(rawText) {
+    let markdown;
+    let sanitizer;
+    try {
+        [markdown, sanitizer] = await Promise.all([
+            loadBrowserLibrary('https://cdn.jsdelivr.net/npm/marked/marked.min.js', 'marked'),
+            loadBrowserLibrary('https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js', 'DOMPurify')
+        ]);
+    } catch (error) {
+        throw new GeminiApiError('render', error.message || 'Secure response rendering is unavailable. Check your connection and retry.');
     }
-    const rawHtml = marked.parse(rawText);
-    const cleanHtml = DOMPurify.sanitize(rawHtml);
+    const rawHtml = markdown.parse(rawText);
+    const cleanHtml = sanitizer.sanitize(rawHtml);
+    const content = document.createElement('template');
+    content.innerHTML = cleanHtml;
+    content.content.querySelectorAll('h1').forEach(heading => {
+        const replacement = document.createElement('h2');
+        replacement.innerHTML = heading.innerHTML;
+        heading.replaceWith(replacement);
+    });
     DOM.outputContainer.classList.remove('empty');
-    DOM.outputContainer.innerHTML = cleanHtml;
+    DOM.outputContainer.replaceChildren(content.content.cloneNode(true));
     DOM.outputContainer.style.opacity = 0;
     requestAnimationFrame(() => { DOM.outputContainer.style.transition = 'opacity .3s ease'; DOM.outputContainer.style.opacity = 1; });
-}
-
-/* Flashcards rendering */
-function parseFlashcards(rawText) {
-    try {
-        const cleaned = stripCodeFences(rawText);
-        const cards = JSON.parse(cleaned);
-        if (!Array.isArray(cards) || cards.length === 0 || cards.some(card =>
-            !card || typeof card.q !== 'string' || !card.q.trim() ||
-            typeof card.a !== 'string' || !card.a.trim()
-        )) throw new Error('Flashcards must contain a question and answer.');
-        return cards;
-    } catch (e) {
-        throw new GeminiApiError('invalid_output', "The AI returned invalid flashcards. Retry to generate them again.");
-    }
-}
-
-function stripCodeFences(text) {
-    return text.trim()
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/\s*```$/, '')
-        .trim();
-}
-
-function parseQuiz(rawText) {
-    try {
-        const quiz = JSON.parse(stripCodeFences(rawText));
-        if (!Array.isArray(quiz) || quiz.length === 0 || quiz.some(question =>
-            !question ||
-            typeof question.topic !== 'string' || !question.topic.trim() ||
-            typeof question.question !== 'string' || !question.question.trim() ||
-            !question.options || !['A', 'B', 'C', 'D'].every(option =>
-                typeof question.options[option] === 'string' && question.options[option].trim()
-            ) ||
-            !['A', 'B', 'C', 'D'].includes(question.correctAnswer) ||
-            typeof question.explanation !== 'string' || !question.explanation.trim()
-        )) throw new Error('Invalid quiz item');
-        return quiz;
-    } catch {
-        throw new GeminiApiError('invalid_output', 'The AI returned an invalid quiz. Retry to generate it again.');
-    }
 }
 
 function renderQuiz(questions) {
@@ -582,154 +641,75 @@ function toggleQuizAnswers() {
 
 function renderFlashcards(cards) {
     DOM.flashcardContainer.classList.remove('hidden');
-    DOM.flashcardContainer.innerHTML = '';
-    cards.forEach(card => {
-        const el = document.createElement('div');
-        el.className = 'flashcard';
-        const q = document.createElement('div');
-        const front = document.createElement('div');
-        const inner = document.createElement('div');
-        inner.className = 'flashcard-inner';
-        const faceFront = document.createElement('div');
-        faceFront.className = 'flashcard-face flashcard-front';
-        faceFront.textContent = card.q || '';
-        const faceBack = document.createElement('div');
-        faceBack.className = 'flashcard-face flashcard-back';
-        faceBack.textContent = card.a || '';
-        inner.appendChild(faceFront);
-        inner.appendChild(faceBack);
-        el.appendChild(inner);
-        el.addEventListener('click', () => el.classList.toggle('flipped'));
-        DOM.flashcardContainer.appendChild(el);
-    });
+    DOM.flashcardContainer.replaceChildren(...cards.map(card => createFlashcard(document, card)));
 
     DOM.copyBtn.disabled = false;
     DOM.exportBtn.disabled = false;
 }
 
 /* API call */
-async function callGeminiAPI(userInput, config) {
-    let promptTemplate = config.prompt;
-    if (config.hasDifficulty) promptTemplate = promptTemplate.replace('{LEVEL}', currentDifficulty);
-    if (config.isQuiz) promptTemplate = buildQuizPrompt();
-    const fullPrompt = `${promptTemplate}${userInput}`;
-
-    const modelToUse = selectedModel || 'gemini-3.6-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    let response;
-    try {
-        response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-            body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
-            signal: controller.signal
-        });
-    } catch (fetchError) {
-        if (fetchError.name === 'AbortError') throw new GeminiApiError('timeout', 'The request timed out after 30 seconds. Retry when ready.');
-        if (!navigator.onLine) throw new GeminiApiError('offline', 'You appear to be offline. Reconnect to the internet, then retry.');
-        throw new GeminiApiError('network', 'Could not reach Gemini. Check your connection, then retry.');
-    } finally {
-        clearTimeout(timeoutId);
-    }
-
-    if (!response.ok) {
-        if (response.status === 400 || response.status === 403) {
-            throw new GeminiApiError('invalid_key', 'Gemini rejected the request. Check your API key and model in Settings.', false);
-        }
-        if (response.status === 429) throw new GeminiApiError('rate_limit', 'Gemini is receiving too many requests. Wait a moment, then retry.');
-        if (response.status >= 500) throw new GeminiApiError('server', 'Gemini is temporarily unavailable. Retry in a moment.');
-        throw new GeminiApiError('request', `Gemini could not process the request (HTTP ${response.status}). Check your input and retry.`, response.status >= 500);
-    }
-
-    let data;
-    try {
-        data = await response.json();
-    } catch {
-        throw new GeminiApiError('empty_response', 'Gemini returned an unreadable response. Retry.');
-    }
-    const candidate = data.candidates?.[0];
-    const text = candidate?.content?.parts?.map(part => part.text || '').join('').trim();
-    if (text) return text;
-    if (candidate?.finishReason === 'SAFETY') {
-        throw new GeminiApiError('blocked', 'Gemini blocked this response for safety reasons. Rephrase your input and retry.', false);
-    }
-    throw new GeminiApiError('empty_response', 'Gemini returned no usable text. Retry with different input.');
-}
-
-function buildQuizPrompt() {
-    const difficultyDescriptions = {
-        easy: 'Easy: direct recall of facts explicitly stated in the source.',
-        medium: 'Medium: apply concepts from the source to a new but familiar situation.',
-        hard: 'Hard: synthesize multiple ideas and use critical analysis based on the source.'
-    };
-    const count = Number(DOM.quizQuestionCount.value);
-    const difficulty = DOM.quizDifficulty.value;
-    return `You are an expert assessment designer. Create exactly ${count} multiple-choice questions using only the source material below. Difficulty: ${difficultyDescriptions[difficulty] || difficultyDescriptions.medium}\nFor each question, provide a short topic label, question, four options A-D, the correct option letter, and a concise explanation of why it is correct. Return ONLY a valid JSON array, with each item shaped exactly like {"topic":"...","question":"...","options":{"A":"...","B":"...","C":"...","D":"..."},"correctAnswer":"A","explanation":"..."}.\n\nSource material:\n`;
+async function callGeminiAPI(userInput) {
+    const prompt = buildPrompt(currentFeature, userInput, {
+        explanationLevel: currentDifficulty,
+        quizDifficulty: DOM.quizDifficulty.value,
+        questionCount: DOM.quizQuestionCount.value
+    });
+    return requestGemini({
+        apiKey,
+        model: selectedModel || 'gemini-3.6-flash',
+        prompt
+    });
 }
 
 /* History */
 function saveToHistory(type, input, output) {
-    const item = { id: Date.now(), type, input, output, date: new Date().toLocaleString(), pinned: false };
-    generationHistory.unshift(item);
-    if (generationHistory.length > 50) generationHistory.pop();
-    localStorage.setItem('study_ai_history', JSON.stringify(generationHistory));
+    historyStore.add(type, input, output);
     renderHistory();
 }
 
 function renderHistory(filter = '') {
-    let items = [...generationHistory];
-    if (filter.trim()) {
-        const f = filter.trim().toLowerCase();
-        items = items.filter(i => i.input.toLowerCase().includes(f) || i.type.toLowerCase().includes(f));
-    }
-    items.sort((a, b) => (b.pinned - a.pinned) || (b.id - a.id));
+    const items = historyStore.search(filter);
 
     if (items.length === 0) {
-        DOM.historyList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:20px;">No history found.</p>`;
+        DOM.historyList.innerHTML = '<p class="history-empty">No history found.</p>';
         return;
     }
 
     DOM.historyList.innerHTML = items.map(item => `
-        <div class="history-item" data-id="${item.id}">
+        <article class="history-item">
             <div class="history-item-header">
-                <span class="history-item-title">${escapeHtml(item.type)}</span>
+                <button class="history-load-btn history-item-title" data-id="${item.id}">Open ${escapeHtml(item.type)}</button>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span>${escapeHtml(item.date)}</span>
-                    <button class="pin-btn ${item.pinned ? 'pinned' : ''}" data-pin-id="${item.id}" title="Pin"><i class='bx ${item.pinned ? 'bxs-star' : 'bx-star'}'></i></button>
+                    <button class="pin-btn ${item.pinned ? 'pinned' : ''}" data-pin-id="${item.id}" aria-label="${item.pinned ? 'Unpin' : 'Pin'} ${escapeHtml(item.type)}" aria-pressed="${item.pinned}"><i class='bx ${item.pinned ? 'bxs-star' : 'bx-star'}' aria-hidden="true"></i></button>
                 </div>
             </div>
             <div class="history-item-preview">${escapeHtml(item.input.substring(0, 100))}...</div>
-        </div>
+        </article>
     `).join('');
 
     document.querySelectorAll('.pin-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = parseInt(btn.getAttribute('data-pin-id'));
-            const record = generationHistory.find(r => r.id === id);
+            const record = historyStore.togglePin(id);
             if (record) {
-                record.pinned = !record.pinned;
-                localStorage.setItem('study_ai_history', JSON.stringify(generationHistory));
                 renderHistory(DOM.historySearchInput.value);
             }
         });
     });
 
-    document.querySelectorAll('.history-item').forEach(el => {
-        el.addEventListener('click', () => {
-            const id = parseInt(el.getAttribute('data-id'));
-            const record = generationHistory.find(r => r.id === id);
+    document.querySelectorAll('.history-load-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const id = parseInt(button.getAttribute('data-id'));
+            const record = historyStore.items.find(r => r.id === id);
             if (record) loadHistoryRecord(record);
         });
     });
 }
 
 function loadHistoryRecord(record) {
-    DOM.historyModal.classList.remove('active');
+    closeDialog(DOM.historyModal);
     currentOutputRaw = record.output;
     lastInputUsed = record.input;
 
@@ -750,7 +730,7 @@ function loadHistoryRecord(record) {
         renderFlashcards(record.output);
     } else {
         DOM.outputContainer.classList.remove('hidden');
-        renderMarkdownSafely(record.output);
+        renderMarkdownSafely(record.output).catch(error => showError(error.message || 'This saved response could not be rendered safely.'));
         DOM.copyBtn.disabled = false;
         DOM.exportBtn.disabled = false;
     }
@@ -759,8 +739,7 @@ function loadHistoryRecord(record) {
 
 function clearHistory() {
     if (confirm("Are you sure you want to clear all history?")) {
-        generationHistory = [];
-        localStorage.removeItem('study_ai_history');
+        historyStore.clear();
         renderHistory();
         showToast('History cleared', 'success');
     }

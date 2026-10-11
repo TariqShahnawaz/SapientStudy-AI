@@ -11,72 +11,76 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icons/icon-192.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="./icons/icon-192.png">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://generativelanguage.googleapis.com">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="light">
 
+    <a class="skip-link" href="#mainContent">Skip to main content</a>
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- API Key Modal -->
     <div id="apiKeyModal" class="modal-overlay">
-        <div class="modal">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="apiKeyTitle" tabindex="-1">
             <div class="modal-header">
-                <h2><i class='bx bxs-key'></i> Setup API Key</h2>
+                <h2 id="apiKeyTitle"><i class='bx bxs-key' aria-hidden="true"></i> Setup API Key</h2>
+                <button id="closeApiKeyBtn" class="icon-btn" aria-label="Close API key setup"><i class='bx bx-x' aria-hidden="true"></i></button>
             </div>
             <div class="modal-body">
                 <p>Welcome! To use SapientStudy-AI, please enter your Google Gemini API Key.</p>
                 <div class="input-group">
                     <label for="apiKeyInput">Gemini API Key</label>
-                    <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+                    <input type="password" id="apiKeyInput" autocomplete="off" aria-describedby="apiKeyError" required placeholder="Paste your Gemini API key">
+                    <p id="apiKeyError" class="error-msg" role="alert" aria-live="assertive"></p>
                 </div>
                 <p class="small-text">Your key is stored only in this browser's local storage and is sent directly to Google — never to any other server. For production use, consider proxying requests through a backend so the key isn't visible in this browser.</p>
             </div>
             <div class="modal-footer">
                 <button id="saveApiKeyBtn" class="btn primary-btn full-width">Save Key</button>
             </div>
-        </div>
+        </section>
     </div>
 
     <!-- History Modal -->
     <div id="historyModal" class="modal-overlay">
-        <div class="modal history-modal">
+        <section class="modal history-modal" role="dialog" aria-modal="true" aria-labelledby="historyTitle" tabindex="-1">
             <div class="modal-header">
-                <h2><i class='bx bx-history'></i> Generation History</h2>
-                <button id="closeHistoryBtn" class="icon-btn"><i class='bx bx-x'></i></button>
+                <h2 id="historyTitle"><i class='bx bx-history' aria-hidden="true"></i> Generation History</h2>
+                <button id="closeHistoryBtn" class="icon-btn" aria-label="Close generation history"><i class='bx bx-x' aria-hidden="true"></i></button>
             </div>
             <div class="modal-body">
                 <div class="history-search">
-                    <i class='bx bx-search'></i>
-                    <input type="text" id="historySearchInput" placeholder="Search history...">
+                    <i class='bx bx-search' aria-hidden="true"></i>
+                    <label class="sr-only" for="historySearchInput">Search generation history</label>
+                    <input type="search" id="historySearchInput" placeholder="Search history...">
                 </div>
-                <div id="historyList"></div>
+                <div id="historyList" aria-live="polite"></div>
             </div>
             <div class="modal-footer">
                 <button id="clearHistoryBtn" class="btn danger-btn full-width">Clear All</button>
             </div>
-        </div>
+        </section>
     </div>
 
     <!-- Settings Drawer -->
     <div id="settingsOverlay" class="modal-overlay">
-        <div class="drawer">
+        <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
             <div class="modal-header">
-                <h2><i class='bx bxs-cog'></i> Settings</h2>
-                <button id="closeSettingsBtn" class="icon-btn"><i class='bx bx-x'></i></button>
+                <h2 id="settingsTitle"><i class='bx bxs-cog' aria-hidden="true"></i> Settings</h2>
+                <button id="closeSettingsBtn" class="icon-btn" aria-label="Close settings"><i class='bx bx-x' aria-hidden="true"></i></button>
             </div>
             <div class="modal-body">
                 <div class="settings-section">
-                    <label class="settings-label">Appearance</label>
+                    <p class="settings-label">Appearance</p>
                     <div class="theme-toggle-row">
-                        <span>Dark mode</span>
-                        <label class="switch">
-                            <input type="checkbox" id="themeToggle">
-                            <span class="slider"></span>
-                        </label>
+                        <label for="themeToggle">Dark mode</label>
+                        <span class="switch">
+                            <input type="checkbox" id="themeToggle" aria-label="Dark mode">
+                            <span class="slider" aria-hidden="true"></span>
+                        </span>
                     </div>
                 </div>
 
@@ -88,20 +92,21 @@
                         <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (fastest)</option>
                         <option value="custom">Custom model name...</option>
                     </select>
+                    <label class="sr-only" for="customModelInput">Custom model name</label>
                     <input type="text" id="customModelInput" class="select-input hidden" placeholder="Enter exact model id">
                 </div>
 
                 <div class="settings-section">
-                    <label class="settings-label">API Key</label>
-                    <button id="changeKeyBtn" class="btn secondary-btn full-width"><i class='bx bxs-key'></i> Change API Key</button>
+                    <p class="settings-label">API Key</p>
+                    <button id="changeKeyBtn" class="btn secondary-btn full-width"><i class='bx bxs-key' aria-hidden="true"></i> Change API Key</button>
                 </div>
 
                 <div class="settings-section">
-                    <label class="settings-label">Data</label>
-                    <button id="clearHistoryFromSettingsBtn" class="btn danger-btn full-width"><i class='bx bx-trash'></i> Clear History</button>
+                    <p class="settings-label">Data</p>
+                    <button id="clearHistoryFromSettingsBtn" class="btn danger-btn full-width"><i class='bx bx-trash' aria-hidden="true"></i> Clear History</button>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 
     <div class="page">
@@ -124,35 +129,35 @@
                 </div>
             </div>
             <div class="topbar-actions">
-                <button id="installAppBtn" class="topbar-btn hidden" type="button" aria-label="Install SapientStudy-AI"><i class='bx bx-download'></i><span>Install app</span></button>
-                <button id="viewHistoryBtn" class="topbar-btn"><i class='bx bx-history'></i><span>History</span></button>
-                <button id="openSettingsBtn" class="topbar-btn"><i class='bx bxs-cog'></i><span>Settings</span></button>
+                <button id="installAppBtn" class="topbar-btn hidden" type="button"><i class='bx bx-download' aria-hidden="true"></i><span>Install app</span></button>
+                <button id="viewHistoryBtn" class="topbar-btn"><i class='bx bx-history' aria-hidden="true"></i><span>History</span></button>
+                <button id="openSettingsBtn" class="topbar-btn"><i class='bx bxs-cog' aria-hidden="true"></i><span>Settings</span></button>
             </div>
         </header>
 
-        <nav class="sidebar-nav feature-nav">
-            <button class="nav-item active" data-feature="summarizer" data-color="tile-a">
-                <i class='bx bx-notepad'></i><span>Note Summarizer</span>
+        <nav class="sidebar-nav feature-nav" aria-label="Study tools">
+            <button class="nav-item active" data-feature="summarizer" data-color="tile-a" aria-pressed="true">
+                <i class='bx bx-notepad' aria-hidden="true"></i><span>Note Summarizer</span>
             </button>
-            <button class="nav-item" data-feature="explainer" data-color="tile-b">
-                <i class='bx bx-brain'></i><span>Concept Explainer</span>
+            <button class="nav-item" data-feature="explainer" data-color="tile-b" aria-pressed="false">
+                <i class='bx bx-brain' aria-hidden="true"></i><span>Concept Explainer</span>
             </button>
-            <button class="nav-item" data-feature="quiz" data-color="tile-c">
-                <i class='bx bx-task'></i><span>Quiz Generator</span>
+            <button class="nav-item" data-feature="quiz" data-color="tile-c" aria-pressed="false">
+                <i class='bx bx-task' aria-hidden="true"></i><span>Quiz Generator</span>
             </button>
-            <button class="nav-item" data-feature="improver" data-color="tile-d">
-                <i class='bx bx-edit-alt'></i><span>Answer Improver</span>
+            <button class="nav-item" data-feature="improver" data-color="tile-d" aria-pressed="false">
+                <i class='bx bx-edit-alt' aria-hidden="true"></i><span>Answer Improver</span>
             </button>
-            <button class="nav-item" data-feature="scheduler" data-color="tile-e">
-                <i class='bx bx-calendar-star'></i><span>Schedule Maker</span>
+            <button class="nav-item" data-feature="scheduler" data-color="tile-e" aria-pressed="false">
+                <i class='bx bx-calendar-star' aria-hidden="true"></i><span>Schedule Maker</span>
             </button>
-            <button class="nav-item" data-feature="flashcards" data-color="tile-f">
-                <i class='bx bx-layer'></i><span>Flashcard Maker</span>
+            <button class="nav-item" data-feature="flashcards" data-color="tile-f" aria-pressed="false">
+                <i class='bx bx-layer' aria-hidden="true"></i><span>Flashcard Maker</span>
                 <span class="new-badge">NEW</span>
             </button>
         </nav>
 
-        <main class="main-content">
+        <main id="mainContent" class="main-content" tabindex="-1">
             <header class="top-header">
                 <div>
                     <h2 id="featureTitle">Note Summarizer</h2>
@@ -162,9 +167,9 @@
 
             <div id="difficultyRow" class="chip-row hidden">
                 <span class="chip-row-label">Explain like I'm:</span>
-                <button class="chip active" data-level="A curious 10-year-old (ELI5)">ELI5</button>
-                <button class="chip" data-level="a first-year college student">Standard</button>
-                <button class="chip" data-level="an advanced student preparing for an exam">Advanced</button>
+                <button class="chip active" data-level="A curious 10-year-old (ELI5)" aria-pressed="true">ELI5</button>
+                <button class="chip" data-level="a first-year college student" aria-pressed="false">Standard</button>
+                <button class="chip" data-level="an advanced student preparing for an exam" aria-pressed="false">Advanced</button>
             </div>
 
             <div id="quizOptions" class="quiz-options hidden">
@@ -188,40 +193,42 @@
             </div>
 
             <div class="workspace">
-                <div class="input-section panel-block">
+                <section class="input-section panel-block" aria-labelledby="inputHeading">
                     <div class="input-header">
-                        <label for="userInput" class="section-label">Your Content</label>
-                        <span id="charCount" class="char-count">0 characters</span>
+                        <h2 id="inputHeading" class="section-label">Your Content</h2>
+                        <span id="charCount" class="char-count" aria-live="polite" aria-atomic="true">0 / 8000 characters</span>
                     </div>
-                    <textarea id="userInput" placeholder="Paste your notes or concepts here..."></textarea>
+                    <label for="userInput" class="input-label">Notes or study material</label>
+                    <textarea id="userInput" maxlength="8000" aria-describedby="inputLimits" placeholder="Paste your notes or concepts here..."></textarea>
+                    <p id="inputLimits" class="input-limits">Enter 10–8,000 characters. Your text stays in this browser until you generate.</p>
                     <div class="document-upload-row">
-                        <input type="file" id="documentInput" class="hidden" accept=".pdf,.docx,.txt,.md,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-                        <button type="button" id="uploadDocumentBtn" class="btn secondary-btn"><i class='bx bx-upload'></i> Upload document</button>
+                        <input type="file" id="documentInput" class="hidden" aria-label="Choose study document" accept=".pdf,.docx,.txt,.md,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                        <button type="button" id="uploadDocumentBtn" class="btn secondary-btn"><i class='bx bx-upload' aria-hidden="true"></i> Upload document</button>
                         <span id="documentStatus" class="document-status" role="status" aria-live="polite">PDF, DOCX, TXT, or MD (max 20 MB)</span>
                     </div>
 
                     <div class="action-bar">
-                        <div id="errorMessage" class="error-msg"></div>
-                            <button id="retryBtn" class="btn secondary-btn hidden" type="button">Retry</button>
+                        <div id="errorMessage" class="error-msg" role="alert" aria-live="assertive"></div>
+                        <button id="retryBtn" class="btn secondary-btn hidden" type="button">Retry</button>
                         <div class="action-bar-right">
                             <span class="kbd-hint">Ctrl + Enter to generate</span>
                             <button id="generateBtn" class="btn primary-btn btn-lg">
-                                <i class='bx bx-sparkles'></i> Generate
+                                <i class='bx bx-sparkles' aria-hidden="true"></i> Generate
                             </button>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="output-section panel-block">
+                <section class="output-section panel-block" aria-labelledby="outputHeading">
                     <div class="output-header">
-                        <label class="section-label">AI Output</label>
+                        <h2 id="outputHeading" class="section-label">AI Output</h2>
                         <div class="output-actions">
-                            <button id="showAnswersBtn" class="btn secondary-btn hidden" type="button" aria-expanded="false">Show answers</button>
-                            <button id="regenerateBtn" class="icon-btn" title="Regenerate" disabled><i class='bx bx-refresh'></i></button>
-                            <button id="copyBtn" class="icon-btn" title="Copy to Clipboard" disabled><i class='bx bx-copy'></i></button>
+                            <button id="showAnswersBtn" class="btn secondary-btn hidden" type="button" aria-expanded="false" aria-controls="outputContainer">Show answers</button>
+                            <button id="regenerateBtn" class="icon-btn" aria-label="Regenerate response" disabled><i class='bx bx-refresh' aria-hidden="true"></i></button>
+                            <button id="copyBtn" class="icon-btn" aria-label="Copy response to clipboard" disabled><i class='bx bx-copy' aria-hidden="true"></i></button>
                             <div class="export-dropdown">
-                                <button id="exportBtn" class="icon-btn" title="Export" disabled><i class='bx bx-download'></i></button>
-                                <div id="exportMenu" class="export-menu hidden">
+                                <button id="exportBtn" class="icon-btn" aria-label="Export response" aria-expanded="false" aria-controls="exportMenu" disabled><i class='bx bx-download' aria-hidden="true"></i></button>
+                                <div id="exportMenu" class="export-menu hidden" role="group" aria-label="Export formats">
                                     <button data-format="txt">Export as .txt</button>
                                     <button data-format="md">Export as .md</button>
                                 </div>
@@ -229,36 +236,34 @@
                         </div>
                     </div>
 
-                    <div id="loadingIndicator" class="loading-container hidden">
-                        <div class="spinner"></div>
-                        <p>Thinking...</p>
+                    <div id="loadingIndicator" class="loading-container hidden" role="status" aria-live="polite">
+                        <div class="spinner" aria-hidden="true"></div>
+                        <p>Thinking… generating your response</p>
                     </div>
 
-                    <div id="outputContainer" class="output-container empty">
+                    <div id="outputContainer" class="output-container empty" aria-live="polite" aria-relevant="additions text">
                         <div class="empty-state">
-                            <i class='bx bx-ghost'></i>
+                            <i class='bx bx-ghost' aria-hidden="true"></i>
                             <p>Output will appear here once generated.</p>
-                        </div>
+                        </section>
                     </div>
 
-                    <div id="flashcardContainer" class="flashcard-container hidden"></div>
+                    <div id="flashcardContainer" class="flashcard-container hidden" role="region" aria-label="Generated flashcards" aria-live="polite"></div>
                 </div>
             </div>
         </main>
     </div>
 
     <!-- Mobile bottom nav -->
-    <nav class="mobile-nav">
-        <button class="mobile-nav-item active" data-feature="summarizer"><i class='bx bx-notepad'></i></button>
-        <button class="mobile-nav-item" data-feature="explainer"><i class='bx bx-brain'></i></button>
-        <button class="mobile-nav-item" data-feature="quiz"><i class='bx bx-task'></i></button>
-        <button class="mobile-nav-item" data-feature="improver"><i class='bx bx-edit-alt'></i></button>
-        <button class="mobile-nav-item" data-feature="flashcards"><i class='bx bx-layer'></i></button>
-        <button class="mobile-nav-item" id="mobileMoreBtn"><i class='bx bx-dots-horizontal-rounded'></i></button>
+    <nav class="mobile-nav" aria-label="Study tools">
+        <button class="mobile-nav-item active" data-feature="summarizer" aria-label="Note Summarizer" aria-pressed="true"><i class='bx bx-notepad' aria-hidden="true"></i></button>
+        <button class="mobile-nav-item" data-feature="explainer" aria-label="Concept Explainer" aria-pressed="false"><i class='bx bx-brain' aria-hidden="true"></i></button>
+        <button class="mobile-nav-item" data-feature="quiz" aria-label="Quiz Generator" aria-pressed="false"><i class='bx bx-task' aria-hidden="true"></i></button>
+        <button class="mobile-nav-item" data-feature="improver" aria-label="Answer Improver" aria-pressed="false"><i class='bx bx-edit-alt' aria-hidden="true"></i></button>
+        <button class="mobile-nav-item" data-feature="flashcards" aria-label="Flashcard Maker" aria-pressed="false"><i class='bx bx-layer' aria-hidden="true"></i></button>
+        <button class="mobile-nav-item" id="mobileMoreBtn" aria-label="Open settings"><i class='bx bx-dots-horizontal-rounded' aria-hidden="true"></i></button>
     </nav>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

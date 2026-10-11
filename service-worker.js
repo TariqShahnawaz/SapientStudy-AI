@@ -1,9 +1,15 @@
-const CACHE_NAME = 'sapientstudy-shell-v2';
+const CACHE_NAME = 'sapientstudy-shell-v3';
 const APP_SHELL = [
     './',
     './index.html',
     './style.css',
     './app.js',
+    './validation.js',
+    './prompts.js',
+    './gemini.js',
+    './parsers.js',
+    './history.js',
+    './ui.js',
     './manifest.webmanifest',
     './icons/icon-192.png',
     './icons/icon-512.png'
