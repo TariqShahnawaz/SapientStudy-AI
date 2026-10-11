@@ -24,6 +24,9 @@ const DOM = {
     featureTitle: document.getElementById('featureTitle'),
     featureDescription: document.getElementById('featureDescription'),
     userInput: document.getElementById('userInput'),
+    documentInput: document.getElementById('documentInput'),
+    uploadDocumentBtn: document.getElementById('uploadDocumentBtn'),
+    documentStatus: document.getElementById('documentStatus'),
     charCount: document.getElementById('charCount'),
     errorMessage: document.getElementById('errorMessage'),
     difficultyRow: document.getElementById('difficultyRow'),
@@ -42,6 +45,7 @@ const DOM = {
 
 const MIN_INPUT_LENGTH = 10;
 const MAX_INPUT_LENGTH = 8000;
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 const FEATURES = {
     summarizer: {
@@ -153,6 +157,8 @@ function setupEventListeners() {
     });
 
     DOM.userInput.addEventListener('input', updateCharCount);
+    DOM.uploadDocumentBtn.addEventListener('click', () => DOM.documentInput.click());
+    DOM.documentInput.addEventListener('change', handleDocumentUpload);
     DOM.userInput.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(); }
     });
@@ -217,6 +223,78 @@ function updateCharCount() {
     DOM.charCount.classList.toggle('warn', len > 0 && len < MIN_INPUT_LENGTH);
 }
 
+async function handleDocumentUpload() {
+    const file = DOM.documentInput.files[0];
+    DOM.documentInput.value = '';
+    if (!file) return;
+
+    const extension = file.name.split('.').pop().toLowerCase();
+    if (!['pdf', 'docx', 'txt', 'md'].includes(extension)) {
+        showError('Unsupported file type. Choose a PDF, DOCX, TXT, or MD file.');
+        return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+        showError('The document is larger than the 20 MB upload limit.');
+        return;
+    }
+
+    clearError();
+    DOM.uploadDocumentBtn.disabled = true;
+    DOM.documentStatus.textContent = `Reading ${file.name}...`;
+
+    try {
+        const buffer = await file.arrayBuffer();
+        let extractedText;
+
+        if (extension === 'pdf') {
+            if (typeof pdfjsLib === 'undefined') {
+                throw new Error('PDF reading is unavailable. Check your internet connection and reload the page.');
+            }
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
+            const pdf = await loadingTask.promise;
+            const pages = [];
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                const page = await pdf.getPage(pageNumber);
+                const content = await page.getTextContent();
+                pages.push(content.items.map(item => item.str || '').join(' '));
+            }
+            extractedText = pages.join('\n\n');
+            await pdf.destroy();
+        } else if (extension === 'docx') {
+            if (typeof mammoth === 'undefined') {
+                throw new Error('Word document reading is unavailable. Check your internet connection and reload the page.');
+            }
+            const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+            extractedText = result.value;
+        } else {
+            extractedText = new TextDecoder('utf-8').decode(buffer);
+        }
+
+        extractedText = extractedText.trim();
+        if (!extractedText) {
+            throw new Error('No readable text was found. Scanned or image-only PDFs are not supported.');
+        }
+
+        const existingText = DOM.userInput.value.trim();
+        const combinedText = existingText ? `${existingText}\n\n${extractedText}` : extractedText;
+        if (combinedText.length > MAX_INPUT_LENGTH) {
+            throw new Error(`The document text exceeds the ${MAX_INPUT_LENGTH}-character input limit. Use a shorter document.`);
+        }
+
+        DOM.userInput.value = combinedText;
+        updateCharCount();
+        DOM.documentStatus.textContent = `Added: ${file.name}`;
+        DOM.userInput.focus();
+    } catch (error) {
+        console.error('Document upload failed:', error);
+        showError(`Could not read "${file.name}": ${error.message || 'Please try another file.'}`);
+        DOM.documentStatus.textContent = `Could not read: ${file.name}`;
+    } finally {
+        DOM.uploadDocumentBtn.disabled = false;
+    }
+}
+
 /* API Key */
 function saveApiKey() {
     const key = DOM.apiKeyInput.value.trim();
@@ -242,6 +320,8 @@ function switchFeature(featureKey) {
     DOM.featureDescription.textContent = config.desc;
     DOM.userInput.placeholder = config.placeholder;
     DOM.userInput.value = '';
+    DOM.documentInput.value = '';
+    DOM.documentStatus.textContent = 'PDF, DOCX, TXT, or MD (max 20 MB)';
     DOM.difficultyRow.classList.toggle('hidden', !config.hasDifficulty);
 
     updateCharCount();

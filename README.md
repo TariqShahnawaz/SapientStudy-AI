@@ -1,20 +1,5 @@
 <div align="center">
 
-# 🧠 StudyMind AI
-
-### Your AI-powered study companion — summarize, explain, quiz, improve, plan, and memorize, all in one place.
-
-[![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)](#)
-[![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)](#)
-[![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)](#)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white)](#)
-
-<i>A completely client-side AI student assistant — no build step, no framework, no backend. Just open it and study smarter.</i>
-
-**Built by Akhilesh Kachhwaha**
-
-</div>
-
 ---
 
 ## 📋 Table of Contents
@@ -36,7 +21,7 @@
 
 ## 📖 About
 
-**StudyMind AI** is a beginner-level AI Engineer Internship project (ShadowFox) built to demonstrate real, practical LLM API integration — not a generic chatbot, but a focused set of study tools that solve an actual student problem: turning raw, unstructured material (notes, rough answers, half-formed questions) into something study-ready in one click.
+**SapientStudy-AI** is a FlyRank AI Internship project built to demonstrate real, practical LLM API integration — not a generic chatbot, but a focused set of study tools that solve an actual student problem: turning raw, unstructured material (notes, rough answers, half-formed questions) into something study-ready in one click.
 
 Every tool sends a **structured, purpose-built prompt** to Google's Gemini API — with a defined role, task, and output format — rather than forwarding the user's raw text. That's the core prompt-engineering idea behind this project.
 
@@ -44,16 +29,18 @@ Every tool sends a **structured, purpose-built prompt** to Google's Gemini API �
 
 ## ✨ Features
 
-| Tool | What it does |
-|---|---|
-| 📝 **Note Summarizer** | Condenses long, messy notes into clear, structured bullet points |
-| 💡 **Concept Explainer** | Explains any topic at your chosen level — ELI5, Standard, or Advanced — with a real-world example |
-| 🎯 **Quiz Generator** | Turns your notes into a 3-question multiple-choice quiz, with an answer key |
-| ✍️ **Answer Improver** | Reviews a draft answer, gives feedback, and rewrites it clearly |
-| 📅 **Schedule Maker** | Builds a realistic day-by-day or hour-by-hour study timetable from your topics and time constraints |
-| 🗂️ **Flashcard Maker** | Generates 6 flip-style Q&A flashcards from any notes — click to flip |
+| Tool                          | What it does                                                                                        |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| 📝**Note Summarizer**   | Condenses long, messy notes into clear, structured bullet points                                    |
+| 💡**Concept Explainer** | Explains any topic at your chosen level — ELI5, Standard, or Advanced — with a real-world example |
+| 🎯**Quiz Generator**    | Turns your notes into a 3-question multiple-choice quiz, with an answer key                         |
+| ✍️**Answer Improver** | Reviews a draft answer, gives feedback, and rewrites it clearly                                     |
+| 📅**Schedule Maker**    | Builds a realistic day-by-day or hour-by-hour study timetable from your topics and time constraints |
+| 🗂️**Flashcard Maker** | Generates 6 flip-style Q&A flashcards from any notes — click to flip                               |
 
 **Also included:** dark/light theme, generation history with search + pin, one-click copy, export as `.txt` or `.md`, a regenerate button, keyboard shortcut (`Ctrl/Cmd + Enter`), and a configurable model selector.
+
+You can also upload text-based PDF, DOCX, TXT, and Markdown (`.md`) files in any feature. Extracted text is added to the content box, where you can review or edit it before generating. Scanned/image-only PDFs are not supported.
 
 ---
 
@@ -67,7 +54,7 @@ A neo-brutalist visual style: bold 2.5px borders, hard offset drop-shadows inste
 
 - **Frontend:** HTML5, CSS3, vanilla JavaScript — zero build step, zero dependencies to install
 - **AI:** Google Gemini API (`generateContent`), called directly from the browser
-- **Libraries (via CDN):** [`marked.js`](https://github.com/markedjs/marked) for markdown rendering, [`DOMPurify`](https://github.com/cure53/DOMPurify) for sanitizing that output before it's displayed, [Boxicons](https://boxicons.com/) for icons
+- **Libraries (via CDN):** [`marked.js`](https://github.com/markedjs/marked) for markdown rendering, [`DOMPurify`](https://github.com/cure53/DOMPurify) for sanitizing that output before it's displayed, [`PDF.js`](https://mozilla.github.io/pdf.js/) and [`Mammoth.js`](https://github.com/mwilliamson/mammoth.js) for document text extraction, and [Boxicons](https://boxicons.com/) for icons
 
 ---
 
@@ -116,11 +103,13 @@ Then open **http://localhost:8000** in your browser. On first load, you'll be as
 Since there's no backend, this deploys anywhere that serves static files — for free:
 
 **GitHub Pages**
+
 1. Push this folder to a new GitHub repository (must be public for the free tier).
 2. Go to **Settings → Pages**, set branch to `main`, folder to `/ (root)`, save.
 3. Your live link appears at `https://<your-username>.github.io/<repo-name>/` within a minute or two.
 
 **Netlify (even faster)**
+
 1. Go to [app.netlify.com/drop](https://app.netlify.com/drop).
 2. Drag your project folder in.
 3. Get an instant live URL — sign up (free) to keep it permanent.
@@ -130,7 +119,7 @@ Since there's no backend, this deploys anywhere that serves static files — for
 ## 📁 Project Structure
 
 ```
-StudyMind-AI/
+SapientStudy-AI/
 ├── index.html      # markup — layout, modals, settings drawer
 ├── style.css       # neo-brutalist design system, light/dark themes
 ├── app.js          # all app logic — prompts, API calls, history, validation
@@ -143,6 +132,7 @@ StudyMind-AI/
 
 - Empty input is rejected with a clear message before any API call is made.
 - Inputs under 10 characters are rejected — the AI needs enough context to produce something useful.
+- Uploaded files are limited to 20 MB, and extracted content must fit within the 8,000-character input limit.
 - A live character counter shows progress toward that minimum as you type.
 - Network errors, request timeouts (30s), and empty/invalid API responses are all caught and shown as a friendly toast instead of a raw error or a blank screen.
 
@@ -151,6 +141,8 @@ StudyMind-AI/
 ## 🔐 Security Note
 
 This is a **Bring-Your-Own-Key (BYOK)** app: your Gemini API key lives in your browser's `localStorage` and is sent directly to Google with each request — it never touches any third-party server. Since the key stays client-side, it is visible to anyone with access to that browser's DevTools, which is an accepted trade-off of a no-backend architecture. It's well suited to personal use or a portfolio demo. For a deployment handling other people's keys, the natural next step would be a thin backend proxy that holds the key server-side instead.
+
+Uploaded documents are read locally in your browser; their extracted text is included in the prompt sent directly to Google when you generate a response. The original file is not uploaded to this app's server.
 
 AI output is rendered through `marked.js` and then sanitized with `DOMPurify` before being inserted into the page, to prevent any injected HTML/script in a model response from executing.
 
@@ -173,11 +165,3 @@ AI output is rendered through `marked.js` and then sanitized with `DOMPurify` be
 ---
 
 <div align="center">
-
-## 👤 Credits
-
-**Built by Akhilesh Kachhwaha**
-
-*ShadowFox AI Engineer Internship — Beginner Level Task*
-
-</div>
