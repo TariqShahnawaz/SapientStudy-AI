@@ -112,6 +112,12 @@ No environment variables are required. Do not add a Gemini API key to Vercel: ea
 
 After connecting the repository, Vercel automatically creates a deployment for pushes to the production branch and preview deployments for pull requests. To roll back, use **Deployments** in the Vercel dashboard to promote a previous successful deployment, or revert the problematic commit and push the fix.
 
+### Install as an app
+
+The deployed site is also an installable Progressive Web App (PWA). On supported desktop browsers and Android, open the Vercel URL and use **Install app** when the browser offers it. On iPhone or iPad, open the site in Safari, tap **Share**, then **Add to Home Screen**.
+
+The service worker caches the app shell so its interface can reopen offline after the first visit. Gemini requests and CDN-hosted libraries still require an internet connection; AI generation also requires a Gemini API key.
+
 ---
 
 ## 📁 Project Structure
@@ -121,6 +127,10 @@ SapientStudy-AI/
 ├── index.html      # markup — layout, modals, settings drawer
 ├── style.css       # neo-brutalist design system, light/dark themes
 ├── app.js          # all app logic — prompts, API calls, history, validation
+├── manifest.webmanifest # PWA name, display settings, and install icons
+├── service-worker.js    # offline app-shell cache
+├── icons/               # app install icons
+├── vercel.json          # manifest MIME type and service worker scope headers
 └── README.md
 ```
 

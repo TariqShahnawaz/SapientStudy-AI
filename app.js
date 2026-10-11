@@ -12,6 +12,7 @@ const DOM = {
     clearHistoryFromSettingsBtn: document.getElementById('clearHistoryFromSettingsBtn'),
     openSettingsBtn: document.getElementById('openSettingsBtn'),
     closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+    installAppBtn: document.getElementById('installAppBtn'),
     generateBtn: document.getElementById('generateBtn'),
     regenerateBtn: document.getElementById('regenerateBtn'),
     copyBtn: document.getElementById('copyBtn'),
@@ -95,6 +96,7 @@ let selectedModel = localStorage.getItem('study_ai_model') || 'gemini-3.6-flash'
 let generationHistory = JSON.parse(localStorage.getItem('study_ai_history') || '[]');
 let currentOutputRaw = '';
 let lastInputUsed = '';
+let deferredInstallPrompt = null;
 
 function init() {
     applyTheme(localStorage.getItem('study_ai_theme') || 'light');
@@ -104,6 +106,26 @@ function init() {
     renderHistory();
     setupInteractiveBackground();
     updateCharCount();
+    setupPwa();
+}
+
+function setupPwa() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+            .catch(error => console.error('Service worker registration failed:', error));
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        DOM.installAppBtn.classList.remove('hidden');
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        DOM.installAppBtn.classList.add('hidden');
+        showToast('SapientStudy-AI installed', 'success');
+    });
 }
 
 function setupInteractiveBackground() {
@@ -134,6 +156,7 @@ function setupEventListeners() {
     DOM.openSettingsBtn.addEventListener('click', () => DOM.settingsOverlay.classList.add('active'));
     DOM.closeSettingsBtn.addEventListener('click', () => DOM.settingsOverlay.classList.remove('active'));
     DOM.settingsOverlay.addEventListener('click', (e) => { if (e.target === DOM.settingsOverlay) DOM.settingsOverlay.classList.remove('active'); });
+    DOM.installAppBtn.addEventListener('click', installApp);
 
     DOM.themeToggle.addEventListener('change', () => applyTheme(DOM.themeToggle.checked ? 'dark' : 'light'));
     DOM.modelSelect.addEventListener('change', handleModelChange);
@@ -184,6 +207,16 @@ function setupEventListeners() {
             currentDifficulty = chip.getAttribute('data-level');
         });
     });
+}
+
+async function installApp() {
+    if (!deferredInstallPrompt) return;
+
+    await deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    DOM.installAppBtn.classList.add('hidden');
+    if (choice.outcome === 'accepted') showToast('Installing SapientStudy-AI...', 'success');
 }
 
 /* Theme */
