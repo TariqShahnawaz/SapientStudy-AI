@@ -1,5 +1,7 @@
 # SapientStudy-AI
 
+**Live application:** [sapientstudy-ai.vercel.app](https://sapientstudy-ai.vercel.app/)
+
 ## Project brief
 
 SapientStudy-AI helps students turn their own study notes, draft answers, and topic lists into useful learning materials instead of facing a generic chatbot. It is for learners who need quick summaries, explanations, quizzes, improved answers, schedules, or flashcards from material they already have. I chose this idea because study workflows benefit from focused AI assistance, clear output formats, and user control over the source material.
