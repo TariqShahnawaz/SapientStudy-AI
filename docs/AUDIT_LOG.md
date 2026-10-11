@@ -4,21 +4,21 @@ Use the same device/network and Lighthouse settings when recording before/after 
 
 ## Lighthouse
 
-| Category | Before | After | Date / URL / notes |
-| --- | --- | --- | --- |
-| Performance | Not measured | 99/100 | 2026-10-11 — local mobile Lighthouse; `npm run lighthouse`; report: `docs/lighthouse-local.html`. |
-| Accessibility | Not measured | 94/100 | 2026-10-11 — local mobile Lighthouse; `npm run lighthouse`; report: `docs/lighthouse-local.html`. |
-| Best Practices | Not measured | 100/100 | 2026-10-11 — local mobile Lighthouse; `npm run lighthouse`; report: `docs/lighthouse-local.html`. |
-| SEO | Not measured | 100/100 | 2026-10-11 — local mobile Lighthouse; `npm run lighthouse`; report: `docs/lighthouse-local.html`. |
+| Category       | Before | After   | Date / URL / notes                                                                                    |
+| -------------- | ------ | ------- | ----------------------------------------------------------------------------------------------------- |
+| Performance    | 76/100 | 99/100  | 2026-10-11 — local mobile Lighthouse;`npm run lighthouse`; report: `docs/lighthouse-local.html`. |
+| Accessibility  | 70/100 | 94/100  | 2026-10-11 — local mobile Lighthouse;`npm run lighthouse`; report: `docs/lighthouse-local.html`. |
+| Best Practices | 89/100 | 100/100 | 2026-10-11 — local mobile Lighthouse;`npm run lighthouse`; report: `docs/lighthouse-local.html`. |
+| SEO            | 86/100 | 100/100 | 2026-10-11 — local mobile Lighthouse;`npm run lighthouse`; report: `docs/lighthouse-local.html`. |
 
 ## axe violations
 
-| Severity | Before count and details | After count and details | Date / URL / notes |
-| --- | --- | --- | --- |
-| Critical | Not measured | 0 | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
-| Serious | Not measured | 0 | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
-| Moderate | Not measured | 0 | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
-| Minor | Not measured | 0 | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
+| Severity  | Before count and details | After count and details | Date / URL / notes                                                                                                 |
+| --------- | ------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Critical  | 0                        | 0                       | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
+| Serious   | 0                        | 0                       | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
+| Moderate0 | 0                        | 0                       | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
+| Minor     | 0                        | 0                       | 2026-10-11 — automated Playwright/axe WCAG 2.1 A/AA checks on main page in light/dark themes and Settings dialog. |
 
 ## One concrete improvement made from audit findings
 

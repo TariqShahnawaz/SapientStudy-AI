@@ -1,3 +1,11 @@
+npm install
+npm test
+npm run test:coverage
+npx playwright install chromium
+npm run test:e2e
+npm run test:a11y
+npm run lighthouse
+
 # Quiz difficulty experiment
 
 ## Sample notes
@@ -30,32 +38,32 @@ The filled-in values below are simulated solely to demonstrate how to summarize 
 ## Participant ratings
 
 | Sample | Selected difficulty | Participant 1 (1–5) | Participant 2 | Participant 3 | Participant 4 | Participant 5 | Average |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Easy | 2 | 2 | 3 | — | — | 2.3 |
-| 1 | Medium | 3 | 3 | 4 | — | — | 3.3 |
-| 1 | Hard | 4 | 4 | 5 | — | — | 4.3 |
-| 2 | Easy | 2 | 3 | 2 | — | — | 2.3 |
-| 2 | Medium | 3 | 4 | 3 | — | — | 3.3 |
-| 2 | Hard | 4 | 5 | 4 | — | — | 4.3 |
-| 3 | Easy | 2 | 2 | 3 | — | — | 2.3 |
-| 3 | Medium | 3 | 4 | 3 | — | — | 3.3 |
-| 3 | Hard | 5 | 4 | 4 | — | — | 4.3 |
+| ------ | ------------------- | -------------------- | ------------- | ------------- | ------------- | ------------- | ------- |
+| 1      | Easy                | 2                    | 2             | 3             | —            | —            | 2.3     |
+| 1      | Medium              | 3                    | 3             | 4             | —            | —            | 3.3     |
+| 1      | Hard                | 4                    | 4             | 5             | —            | —            | 4.3     |
+| 2      | Easy                | 2                    | 3             | 2             | —            | —            | 2.3     |
+| 2      | Medium              | 3                    | 4             | 3             | —            | —            | 3.3     |
+| 2      | Hard                | 4                    | 5             | 4             | —            | —            | 4.3     |
+| 3      | Easy                | 2                    | 2             | 3             | —            | —            | 2.3     |
+| 3      | Medium              | 3                    | 4             | 3             | —            | —            | 3.3     |
+| 3      | Hard                | 5                    | 4             | 4             | —            | —            | 4.3     |
 
 ## Topic-label coverage check
 
 The expected topics are derived from the sample notes. The example generated-label entries below are simulated to demonstrate a coverage review; they are not actual Gemini outputs.
 
-| Sample / difficulty | Topics expected from notes | Topics represented in generated labels | Missing / unsupported concepts |
-| --- | --- | --- | --- |
-| 1 / Easy | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals | Predicted outcome; slope; intercept | OLS objective omitted |
-| 1 / Medium | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals | Slope interpretation; prediction from an input change; OLS residuals | Intercept omitted |
-| 1 / Hard | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals | Coefficient interpretation; prediction; squared residual minimization | No unsupported topics in this example |
-| 2 / Easy | Linearity; independence; residual normality; homoscedasticity; residual plots | Linearity; independence; normal residuals | Homoscedasticity and residual plots omitted |
-| 2 / Medium | Linearity; independence; residual normality; homoscedasticity; residual plots | Residual plot patterns; changing variance; independence | Normality omitted |
-| 2 / Hard | Linearity; independence; residual normality; homoscedasticity; residual plots | Diagnosing nonlinearity; heteroscedastic residual pattern; residual normality | Independence omitted |
-| 3 / Easy | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | Multicollinearity; VIF; Ridge; Lasso | Outlier influence omitted |
-| 3 / Medium | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | VIF interpretation; coefficient instability; outlier effect; Ridge shrinkage | Lasso omitted |
-| 3 / Hard | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | Comparing Ridge and Lasso; outlier sensitivity; VIF diagnostics | No unsupported topics in this example |
+| Sample / difficulty | Topics expected from notes                                                                                        | Topics represented in generated labels                                        | Missing / unsupported concepts              |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
+| 1 / Easy            | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals                | Predicted outcome; slope; intercept                                           | OLS objective omitted                       |
+| 1 / Medium          | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals                | Slope interpretation; prediction from an input change; OLS residuals          | Intercept omitted                           |
+| 1 / Hard            | Continuous-outcome prediction; input variables; slope; intercept; OLS minimizing squared residuals                | Coefficient interpretation; prediction; squared residual minimization         | No unsupported topics in this example       |
+| 2 / Easy            | Linearity; independence; residual normality; homoscedasticity; residual plots                                     | Linearity; independence; normal residuals                                     | Homoscedasticity and residual plots omitted |
+| 2 / Medium          | Linearity; independence; residual normality; homoscedasticity; residual plots                                     | Residual plot patterns; changing variance; independence                       | Normality omitted                           |
+| 2 / Hard            | Linearity; independence; residual normality; homoscedasticity; residual plots                                     | Diagnosing nonlinearity; heteroscedastic residual pattern; residual normality | Independence omitted                        |
+| 3 / Easy            | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | Multicollinearity; VIF; Ridge; Lasso                                          | Outlier influence omitted                   |
+| 3 / Medium          | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | VIF interpretation; coefficient instability; outlier effect; Ridge shrinkage  | Lasso omitted                               |
+| 3 / Hard            | Multicollinearity; unstable coefficients; VIF; outlier influence on OLS; Ridge shrinkage; Lasso feature selection | Comparing Ridge and Lasso; outlier sensitivity; VIF diagnostics               | No unsupported topics in this example       |
 
 ## Observations and limitations
 
