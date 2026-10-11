@@ -1,175 +1,155 @@
-<div align="center">
+# SapientStudy-AI
 
----
+## Project brief
 
-## 📋 Table of Contents
+SapientStudy-AI helps students turn their own study notes, draft answers, and topic lists into useful learning materials instead of facing a generic chatbot. It is for learners who need quick summaries, explanations, quizzes, improved answers, schedules, or flashcards from material they already have. I chose this idea because study workflows benefit from focused AI assistance, clear output formats, and user control over the source material.
 
-- [About](#-about)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Architecture](#-architecture)
-- [Getting Started](#-getting-started)
-- [Deploying It Live](#-deploying-it-live)
-- [Project Structure](#-project-structure)
-- [Input Validation](#-input-validation)
-- [Security Note](#-security-note)
-- [Screenshots](#-screenshots)
-- [Roadmap](#-roadmap)
-- [Credits](#-credits)
+## Quick start for reviewers
 
----
+Get a free Gemini API key at [Google AI Studio](https://aistudio.google.com/) (sign in, create an API key, and copy it; it typically takes about a minute). Open the deployed app, enter the key in Settings, and try a study tool. The key is stored in your browser's local storage and sent directly to Google; **do not share or commit a real key**.
 
-## 📖 About
+### Run locally in under five minutes
 
-**SapientStudy-AI** is a FlyRank AI Internship project built to demonstrate real, practical LLM API integration — not a generic chatbot, but a focused set of study tools that solve an actual student problem: turning raw, unstructured material (notes, rough answers, half-formed questions) into something study-ready in one click.
-
-Every tool sends a **structured, purpose-built prompt** to Google's Gemini API — with a defined role, task, and output format — rather than forwarding the user's raw text. That's the core prompt-engineering idea behind this project.
-
----
-
-## ✨ Features
-
-| Tool                          | What it does                                                                                        |
-| ----------------------------- | --------------------------------------------------------------------------------------------------- |
-| 📝**Note Summarizer**   | Condenses long, messy notes into clear, structured bullet points                                    |
-| 💡**Concept Explainer** | Explains any topic at your chosen level — ELI5, Standard, or Advanced — with a real-world example |
-| 🎯**Quiz Generator**    | Turns your notes into a 3-question multiple-choice quiz, with an answer key                         |
-| ✍️**Answer Improver** | Reviews a draft answer, gives feedback, and rewrites it clearly                                     |
-| 📅**Schedule Maker**    | Builds a realistic day-by-day or hour-by-hour study timetable from your topics and time constraints |
-| 🗂️**Flashcard Maker** | Generates 6 flip-style Q&A flashcards from any notes — click to flip                               |
-
-**Also included:** dark/light theme, generation history with search + pin, one-click copy, export as `.txt` or `.md`, a regenerate button, keyboard shortcut (`Ctrl/Cmd + Enter`), and a configurable model selector.
-
-You can also upload text-based PDF, DOCX, TXT, and Markdown (`.md`) files in any feature. Extracted text is added to the content box, where you can review or edit it before generating. Scanned/image-only PDFs are not supported.
-
----
-
-## 🎨 Design
-
-A neo-brutalist visual style: bold 2.5px borders, hard offset drop-shadows instead of blur, a warm cream background with a subtle dot-grid texture, `Space Grotesk` display type, and six distinct accent colors — one per tool. Feature tiles sit in a horizontal row and visually "press in" when selected. Dark mode is available as a full alternate palette via the settings drawer.
-
----
-
-## 🛠 Tech Stack
-
-- **Frontend:** HTML5, CSS3, vanilla JavaScript — zero build step, zero dependencies to install
-- **AI:** Google Gemini API (`generateContent`), called directly from the browser
-- **Libraries (via CDN):** [`marked.js`](https://github.com/markedjs/marked) for markdown rendering, [`DOMPurify`](https://github.com/cure53/DOMPurify) for sanitizing that output before it's displayed, [`PDF.js`](https://mozilla.github.io/pdf.js/) and [`Mammoth.js`](https://github.com/mwilliamson/mammoth.js) for document text extraction, and [Boxicons](https://boxicons.com/) for icons
-
----
-
-## 🔄 Architecture
-
-```mermaid
-graph TD
-    A[Student] -->|Types content, picks a tool| B(UI)
-    B --> C{API Key in localStorage?}
-    C -->|No| D[Setup Modal]
-    D --> B
-    C -->|Yes| E[app.js — builds structured prompt]
-    E --> F[Gemini API generateContent]
-    F -->|Raw markdown / JSON response| G[Response Handler]
-    G --> H[marked.js → DOMPurify → safe HTML]
-    G --> I[Saved to localStorage history]
-    H --> J[Output panel]
-    J --> K{Actions}
-    K --> L[Copy]
-    K --> M[Export .txt / .md]
-    K --> N[Regenerate]
-```
-
----
-
-## ⚡ Getting Started
-
-Because this is fully client-side, all you need is a local static server (opening `index.html` directly via `file://` won't work — the browser blocks the API request due to CORS).
+The production app remains plain static HTML/CSS/JavaScript. No build or bundling step is required.
 
 ```bash
-# From inside the project folder:
-
-# Option A — Python
-python -m http.server 8000
-
-# Option B — Node.js
-npx serve .
+npm install
+npm run serve
 ```
 
-Then open **http://localhost:8000** in your browser. On first load, you'll be asked for a Gemini API key — grab a free one at [Google AI Studio](https://aistudio.google.com/).
+Open <http://127.0.0.1:4173>. To run the unit tests, use a second terminal:
 
----
-
-## 🌐 Deploying to Vercel
-
-This is a static HTML/CSS/JavaScript app with no `package.json`, build step, or backend. Deploy it by importing the GitHub repository into Vercel:
-
-1. Sign in to [Vercel](https://vercel.com/) and choose **Add New → Project**.
-2. Import [`TariqShahnawaz/SapientStudy-AI`](https://github.com/TariqShahnawaz/SapientStudy-AI).
-3. Keep the project root as the **Root Directory** and select **Other** as the Framework Preset.
-4. Leave the **Install Command** and **Build Command** empty. Set the **Output Directory** to `.` (the repository root, where `index.html` is located).
-5. Select **Deploy**. Vercel will provide a public `*.vercel.app` URL when deployment completes.
-
-No environment variables are required. Do not add a Gemini API key to Vercel: each user enters their own key in the app, which is stored in that user's browser and sent directly to Google's Gemini API.
-
-After connecting the repository, Vercel automatically creates a deployment for pushes to the production branch and preview deployments for pull requests. To roll back, use **Deployments** in the Vercel dashboard to promote a previous successful deployment, or revert the problematic commit and push the fix.
-
-### Install as an app
-
-The deployed site is also an installable Progressive Web App (PWA). On supported desktop browsers and Android, open the Vercel URL and use **Install app** when the browser offers it. On iPhone or iPad, open the site in Safari, tap **Share**, then **Add to Home Screen**.
-
-The service worker caches the app shell so its interface can reopen offline after the first visit. Gemini requests and CDN-hosted libraries still require an internet connection; AI generation also requires a Gemini API key.
-
----
-
-## 📁 Project Structure
-
-```
-SapientStudy-AI/
-├── index.html      # markup — layout, modals, settings drawer
-├── style.css       # neo-brutalist design system, light/dark themes
-├── app.js          # all app logic — prompts, API calls, history, validation
-├── manifest.webmanifest # PWA name, display settings, and install icons
-├── service-worker.js    # offline app-shell cache
-├── icons/               # app install icons
-├── vercel.json          # manifest MIME type and service worker scope headers
-└── README.md
+```bash
+npm test
+npm run test:coverage
 ```
 
----
+For browser tests and accessibility checks, install Chromium once and run:
 
-## ✅ Input Validation
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
 
-- Empty input is rejected with a clear message before any API call is made.
-- Inputs under 10 characters are rejected — the AI needs enough context to produce something useful.
-- Uploaded files are limited to 20 MB, and extracted content must fit within the 8,000-character input limit.
-- A live character counter shows progress toward that minimum as you type.
-- Network errors, request timeouts (30s), and empty/invalid API responses are all caught and shown as a friendly toast instead of a raw error or a blank screen.
+## Features
 
----
+| Tool | Purpose |
+| --- | --- |
+| Note Summarizer | Condenses study notes into key points. |
+| Concept Explainer | Explains concepts at a selected level with an example. |
+| Quiz Generator | Generates 3, 5, 8, or 10 topic-labelled MCQs at Easy, Medium, or Hard difficulty with answer reasoning. |
+| Answer Improver | Gives feedback on a draft and proposes a polished version. |
+| Schedule Maker | Turns topics and time constraints into a study timetable. |
+| Flashcard Maker | Makes six keyboard-operable question/answer cards. |
 
-## 🔐 Security Note
+Text-based PDF, DOCX, TXT, and MD uploads are supported in every tool. Files are extracted in the browser and the resulting text can be reviewed before generation. Scanned/image-only PDFs are not supported. Other features include searchable/pinnable local history, light/dark themes, copy/export, and PWA installation.
 
-This is a **Bring-Your-Own-Key (BYOK)** app: your Gemini API key lives in your browser's `localStorage` and is sent directly to Google with each request — it never touches any third-party server. Since the key stays client-side, it is visible to anyone with access to that browser's DevTools, which is an accepted trade-off of a no-backend architecture. It's well suited to personal use or a portfolio demo. For a deployment handling other people's keys, the natural next step would be a thin backend proxy that holds the key server-side instead.
+## Architecture
 
-Uploaded documents are read locally in your browser; their extracted text is included in the prompt sent directly to Google when you generate a response. The original file is not uploaded to this app's server.
+The site is served directly from the repository root on Vercel; `package.json` contains development-only test/audit dependencies and scripts.
 
-AI output is rendered through `marked.js` and then sanitized with `DOMPurify` before being inserted into the page, to prevent any injected HTML/script in a model response from executing.
+| File | Responsibility |
+| --- | --- |
+| `index.html`, `style.css` | Accessible semantic UI and responsive light/dark styling. |
+| `app.js` | Connects UI events, local settings/history, uploads, response rendering, and feature navigation. |
+| `validation.js` | Shared 10–8,000 character validation and counting. |
+| `prompts.js` | Per-tool and quiz difficulty prompt builders. |
+| `gemini.js` | Gemini request, timeout, HTTP mapping, and response failure handling. |
+| `parsers.js` | Defensive quiz and flashcard JSON parsing. |
+| `history.js` | Searchable, pinnable, bounded local history store. |
+| `ui.js` | Testable accessible DOM helpers, theme, counter, toast, and flashcards. |
+| `service-worker.js`, `manifest.webmanifest`, `icons/` | Installable PWA shell and static offline resources. |
+| `vercel.json` | PWA manifest and service-worker response headers. |
+| `tests/`, `e2e/` | Vitest unit/DOM tests, Playwright user-flow and axe tests. |
 
----
+## AI integration
 
-## 📸 Screenshots
+The app uses Google's Gemini `generateContent` endpoint in the browser. Each request puts the user's key in the `x-goog-api-key` header (not the URL), and sends a tool-specific instruction followed by the entered/extracted source. Requests time out after 30 seconds. Model text is rendered either through `marked` plus DOMPurify or validated against the quiz/flashcard schema; quiz and card strings are inserted as text, not raw HTML.
 
-*(Add screenshots here after deploying — e.g. `screenshots/summarizer.png`, `screenshots/flashcards.png`, `screenshots/dark-mode.png`)*
+Examples of the prompt structure:
 
----
+| Tool | Example instruction | Why it is structured this way |
+| --- | --- | --- |
+| Summarizer | “You are an expert AI tutor. Summarize the following study notes concisely. Use bullet points and highlight the most critical information.” | Defines a tutor role, concise task, and scannable format. |
+| Explainer | “Explain the following concept clearly, as if explaining to a first-year college student. Always include an easy-to-understand real-world example.” | Sets audience and requires a concrete example. |
+| Quiz | “Create exactly 5 multiple-choice questions using only the source material. Difficulty: Medium: apply concepts from the source to a new but familiar situation. Return ONLY a valid JSON array…” | Constrains source, difficulty, count, schema, and answer reasoning for reliable validation. |
+| Answer Improver | “Review the draft answer. First provide constructive feedback on what is good and what is missing or incorrect. Then provide a polished, improved version.” | Separates diagnostic feedback from the revised answer. |
+| Schedule Maker | “Create a structured, realistic study timetable… Break it down day-by-day or hour-by-hour depending on the context.” | Requests an actionable schedule adapted to provided constraints. |
+| Flashcards | “Create exactly 6 flashcards… Respond with ONLY a raw JSON array… `[{\"q\":\"question text\",\"a\":\"answer text\"}]`.” | Requires predictable, validated question/answer data for interactive cards. |
 
-## 🗺 Roadmap
+Quiz difficulty definitions are explicit: **Easy** is direct recall, **Medium** applies concepts to a familiar situation, and **Hard** synthesizes ideas and applies critical analysis. Quiz objects also include topic labels, four options, the correct option, and a concise explanation.
 
-- [ ] Optional backend proxy mode for secure key handling
-- [ ] PDF export for summaries and quizzes
-- [ ] Streaming responses instead of a single-shot request
-- [ ] Adjustable quiz length and flashcard count
-- [ ] Import notes directly from a `.txt`/`.md` file
+## Failure modes and recovery
 
----
+| Error | What the user sees | Recovery |
+| --- | --- | --- |
+| Missing/invalid input | Inline validation message; generation does not start. | Enter 10–8,000 characters. |
+| Invalid API key/model (400/403) | Settings-oriented error; Retry is not offered. | Correct the key/model in Settings. |
+| Rate limit (429) | Friendly rate-limit message and Retry button. | Wait, then Retry. |
+| Gemini server error (5xx) | Temporary-unavailability message and Retry button. | Retry later. |
+| Timeout (30 seconds) | Timeout message and Retry button. | Retry when ready. |
+| Offline/network error | Connection-specific message and Retry button. | Reconnect, then Retry. |
+| Empty, blocked, malformed, or wrong-shape response | Clear response/format error; unsafe raw output is not displayed. | Rephrase or Retry. |
+| Unreadable upload | File-specific explanation in the input error region. | Try a supported, text-based document. |
 
-<div align="center">
+## Testing
+
+```bash
+npm test                 # focused unit and DOM tests
+npm run test:coverage    # tests plus configured coverage thresholds
+npx playwright install chromium  # one-time browser download
+npm run test:e2e         # quiz success, 429 recovery, and axe
+npm run test:a11y        # axe test only
+npm run lighthouse       # local mobile Lighthouse HTML report
+```
+
+Latest unit run: **26 tests passed**. Coverage: **94.73% statements, 87.28% branches, 94.44% functions, and 95.59% lines** across the extracted application logic modules. Thresholds are 70% statements and 50% branches. `docs/test-output.txt` contains the recorded coverage run. CI repeats coverage and Playwright checks for pushes and pull requests.
+
+The automated axe check currently passes with **no serious or critical violations** on the main page in light and dark themes and with the Settings dialog open. This is not a substitute for a full manual WCAG 2.1 AA audit.
+
+## Accessibility and performance
+
+The UI includes semantic landmarks, a skip link, visible focus, real form labels, labelled icon buttons, live status/error announcements, keyboard-operable flashcards, focus-managed modal/drawer dialogs, reduced-motion handling, and 44px minimum mobile control targets. Contrast is checked by axe in the automated page states; audit all remaining screens and generated results before claiming conformance.
+
+Scripts are deferred or modules; PDF.js and Mammoth load only when the corresponding file is selected. The service worker caches same-origin app-shell assets and never intercepts the cross-origin Gemini API.
+
+| Measurement | Local result | Live Vercel result |
+| --- | --- | --- |
+| Lighthouse mobile Performance | 99/100 | Fill after deployment in `docs/AUDIT_LOG.md` |
+| Lighthouse mobile Accessibility | 94/100 | Fill after deployment in `docs/AUDIT_LOG.md` |
+| Lighthouse Best Practices / SEO | 100/100 / 100/100 | Fill after deployment in `docs/AUDIT_LOG.md` |
+| axe WCAG 2.1 A/AA violations | 0 in automated states listed above | Run against the live URL and record in `docs/AUDIT_LOG.md` |
+
+## Deployment
+
+Import this repository into Vercel, leave the root directory at the repository root, select **Other**, set no build/install command, and use `.` as the output directory. The deployment checklist, rollback, and monitoring steps are in [docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md).
+
+## Known limitations
+
+- Bring-your-own-key: the Gemini key is stored in browser local storage and is accessible to that browser's user. There is no server-side proxy.
+- Requests and source text are sent directly to Google when the user generates content.
+- The app is client-side only; Gemini generation and CDN dependencies require an internet connection.
+- Scanned/image-only PDFs have no OCR.
+- AI output can be incomplete or incorrect; review educational content before relying on it.
+- The service worker caches the app shell only; it does not provide offline AI generation.
+
+## Future improvements
+
+- Add an optional authenticated backend proxy for shared deployments.
+- Add OCR for scanned documents and user-selectable flashcard counts.
+- Expand automated tests to remaining interactions and full WCAG review to all generated result states.
+- Evaluate streaming output and export formats based on user feedback.
+
+## Screenshots to capture
+
+- `screenshots/01-summarizer-light.png` — main summarizer with example output.
+- `screenshots/02-quiz-settings.png` — selected difficulty and question count.
+- `screenshots/03-quiz-answer-key.png` — topic labels and revealed answer reasoning.
+- `screenshots/04-flashcards.png` — one question-side and one answer-side card.
+- `screenshots/05-history.png` — history search and pin state.
+- `screenshots/06-settings-dark.png` — settings drawer in dark theme.
+- `screenshots/07-mobile.png` — mobile layout and bottom navigation.
+
+## Credits
+
+**Tariq Shah Nawaz** — FlyRank AI Internship - Capstone Project.

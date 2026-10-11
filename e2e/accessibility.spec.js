@@ -15,7 +15,7 @@ test.describe('main page accessibility @axe', () => {
         await expect(page.locator('#mainContent')).toBeFocused();
     });
 
-    test('has no serious or critical axe violations in both themes or settings dialog', async ({ page }) => {
+    test('has zero WCAG 2.1 A/AA violations in both themes and settings dialog', async ({ page }) => {
         await page.addInitScript(() => localStorage.setItem('gemini_api_key', 'fake-test-key'));
         await page.goto('/');
 

@@ -1,0 +1,19 @@
+> npm run test:coverage
+> vitest run --coverage
+
+Test Files  6 passed (6)
+Tests       26 passed (26)
+
+Coverage summary from v8
+---------------|---------|----------|---------|---------|-------------------
+File           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+---------------|---------|----------|---------|---------|-------------------
+All files      |   94.73 |    87.28 |   94.44 |   95.59 |
+gemini.js      |   97.22 |     92.3 |     100 |   96.87 | 65
+history.js     |    82.5 |    53.84 |   91.66 |   83.78 | 5,32-33,38-41
+parsers.js     |     100 |      100 |     100 |     100 |
+prompts.js     |     100 |      100 |     100 |     100 |
+ui.js          |   98.07 |    94.44 |   87.5  |     100 | 68
+validation.js  |     100 |      100 |     100 |     100 |
+
+Coverage thresholds configured: 70% statements, 50% branches.
