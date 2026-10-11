@@ -98,21 +98,19 @@ Then open **http://localhost:8000** in your browser. On first load, you'll be as
 
 ---
 
-## 🌐 Deploying It Live
+## 🌐 Deploying to Vercel
 
-Since there's no backend, this deploys anywhere that serves static files — for free:
+This is a static HTML/CSS/JavaScript app with no `package.json`, build step, or backend. Deploy it by importing the GitHub repository into Vercel:
 
-**GitHub Pages**
+1. Sign in to [Vercel](https://vercel.com/) and choose **Add New → Project**.
+2. Import [`TariqShahnawaz/SapientStudy-AI`](https://github.com/TariqShahnawaz/SapientStudy-AI).
+3. Keep the project root as the **Root Directory** and select **Other** as the Framework Preset.
+4. Leave the **Install Command** and **Build Command** empty. Set the **Output Directory** to `.` (the repository root, where `index.html` is located).
+5. Select **Deploy**. Vercel will provide a public `*.vercel.app` URL when deployment completes.
 
-1. Push this folder to a new GitHub repository (must be public for the free tier).
-2. Go to **Settings → Pages**, set branch to `main`, folder to `/ (root)`, save.
-3. Your live link appears at `https://<your-username>.github.io/<repo-name>/` within a minute or two.
+No environment variables are required. Do not add a Gemini API key to Vercel: each user enters their own key in the app, which is stored in that user's browser and sent directly to Google's Gemini API.
 
-**Netlify (even faster)**
-
-1. Go to [app.netlify.com/drop](https://app.netlify.com/drop).
-2. Drag your project folder in.
-3. Get an instant live URL — sign up (free) to keep it permanent.
+After connecting the repository, Vercel automatically creates a deployment for pushes to the production branch and preview deployments for pull requests. To roll back, use **Deployments** in the Vercel dashboard to promote a previous successful deployment, or revert the problematic commit and push the fix.
 
 ---
 
