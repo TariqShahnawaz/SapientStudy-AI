@@ -14,6 +14,7 @@ const DOM = {
     closeSettingsBtn: document.getElementById('closeSettingsBtn'),
     installAppBtn: document.getElementById('installAppBtn'),
     generateBtn: document.getElementById('generateBtn'),
+    retryBtn: document.getElementById('retryBtn'),
     regenerateBtn: document.getElementById('regenerateBtn'),
     copyBtn: document.getElementById('copyBtn'),
     exportBtn: document.getElementById('exportBtn'),
@@ -97,6 +98,16 @@ let generationHistory = JSON.parse(localStorage.getItem('study_ai_history') || '
 let currentOutputRaw = '';
 let lastInputUsed = '';
 let deferredInstallPrompt = null;
+let lastGenerationInput = '';
+
+class GeminiApiError extends Error {
+    constructor(type, message, retryable = true) {
+        super(message);
+        this.name = 'GeminiApiError';
+        this.type = type;
+        this.retryable = retryable;
+    }
+}
 
 function init() {
     applyTheme(localStorage.getItem('study_ai_theme') || 'light');
@@ -166,6 +177,9 @@ function setupEventListeners() {
     });
 
     DOM.generateBtn.addEventListener('click', handleGenerate);
+    DOM.retryBtn.addEventListener('click', () => {
+        if (lastGenerationInput) handleGenerate(lastGenerationInput);
+    });
     DOM.regenerateBtn.addEventListener('click', () => {
         if (lastInputUsed) { DOM.userInput.value = lastInputUsed; handleGenerate(); }
     });
@@ -362,8 +376,14 @@ function switchFeature(featureKey) {
     clearError();
 }
 
-function showError(msg) { DOM.errorMessage.textContent = msg; }
-function clearError() { DOM.errorMessage.textContent = ''; }
+function showError(msg, retryable = false) {
+    DOM.errorMessage.textContent = msg;
+    DOM.retryBtn.classList.toggle('hidden', !retryable || !lastGenerationInput);
+}
+function clearError() {
+    DOM.errorMessage.textContent = '';
+    DOM.retryBtn.classList.add('hidden');
+}
 
 function showToast(message, type = 'error') {
     const toast = document.createElement('div');
@@ -399,15 +419,17 @@ function validateInput(input) {
 }
 
 /* Core generation */
-async function handleGenerate() {
+async function handleGenerate(inputOverride = null) {
+    if (DOM.generateBtn.disabled) return;
     if (!apiKey) { DOM.apiKeyModal.classList.add('active'); return; }
 
-    const input = DOM.userInput.value.trim();
+    const input = (inputOverride ?? DOM.userInput.value).trim();
     const validationMsg = validateInput(input);
-    if (validationMsg) { showError(validationMsg); return; }
+    if (validationMsg) { showError(validationMsg, false); return; }
 
     clearError();
     lastInputUsed = input;
+    lastGenerationInput = input;
 
     DOM.outputContainer.classList.add('hidden');
     DOM.flashcardContainer.classList.add('hidden');
@@ -422,22 +444,21 @@ async function handleGenerate() {
         const resultText = await callGeminiAPI(input, config);
         currentOutputRaw = resultText;
 
-        saveToHistory(config.title, input, resultText);
-
         DOM.loadingIndicator.classList.add('hidden');
-        DOM.regenerateBtn.disabled = false;
-
         if (config.isFlashcards) {
-            renderFlashcards(resultText);
+            const cards = parseFlashcards(resultText);
+            renderFlashcards(cards);
         } else {
             DOM.outputContainer.classList.remove('hidden');
-            DOM.copyBtn.disabled = false;
-            DOM.exportBtn.disabled = false;
             renderMarkdownSafely(resultText);
         }
+        saveToHistory(config.title, input, resultText);
+        DOM.regenerateBtn.disabled = false;
+        DOM.copyBtn.disabled = false;
+        DOM.exportBtn.disabled = false;
     } catch (error) {
         console.error(error);
-        showToast(error.message || "Unable to generate a response right now. Please try again.", 'error');
+        showError(error.message || "Unable to generate a response right now. Please try again.", error.retryable !== false);
         resetOutput();
         DOM.loadingIndicator.classList.add('hidden');
     } finally {
@@ -447,8 +468,11 @@ async function handleGenerate() {
 
 /* Safe markdown rendering (XSS-protected) */
 function renderMarkdownSafely(rawText) {
+    if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
+        throw new GeminiApiError('render', 'Secure response rendering is unavailable. Check your connection and retry.');
+    }
     const rawHtml = marked.parse(rawText);
-    const cleanHtml = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(rawHtml) : rawHtml;
+    const cleanHtml = DOMPurify.sanitize(rawHtml);
     DOM.outputContainer.classList.remove('empty');
     DOM.outputContainer.innerHTML = cleanHtml;
     DOM.outputContainer.style.opacity = 0;
@@ -456,20 +480,28 @@ function renderMarkdownSafely(rawText) {
 }
 
 /* Flashcards rendering */
-function renderFlashcards(rawText) {
-    let cards = [];
+function parseFlashcards(rawText) {
     try {
-        const cleaned = rawText.trim().replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
-        cards = JSON.parse(cleaned);
+        const cleaned = stripCodeFences(rawText);
+        const cards = JSON.parse(cleaned);
+        if (!Array.isArray(cards) || cards.length === 0 || cards.some(card =>
+            !card || typeof card.q !== 'string' || !card.q.trim() ||
+            typeof card.a !== 'string' || !card.a.trim()
+        )) throw new Error('Flashcards must contain a question and answer.');
+        return cards;
     } catch (e) {
-        showToast("Couldn't parse flashcards, showing raw text instead.", 'error');
-        DOM.outputContainer.classList.remove('hidden');
-        DOM.copyBtn.disabled = false;
-        DOM.exportBtn.disabled = false;
-        renderMarkdownSafely(rawText);
-        return;
+        throw new GeminiApiError('invalid_output', "The AI returned invalid flashcards. Retry to generate them again.");
     }
+}
 
+function stripCodeFences(text) {
+    return text.trim()
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/, '')
+        .trim();
+}
+
+function renderFlashcards(cards) {
     DOM.flashcardContainer.classList.remove('hidden');
     DOM.flashcardContainer.innerHTML = '';
     cards.forEach(card => {
@@ -503,7 +535,7 @@ async function callGeminiAPI(userInput, config) {
     const fullPrompt = `${promptTemplate}${userInput}`;
 
     const modelToUse = selectedModel || 'gemini-3.6-flash';
-    let url = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -512,40 +544,40 @@ async function callGeminiAPI(userInput, config) {
     try {
         response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
             body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
             signal: controller.signal
         });
     } catch (fetchError) {
-        if (fetchError.name === 'AbortError') throw new Error("The request timed out. The AI model took too long to respond.");
-        throw new Error("Network error — check your connection and try again.");
+        if (fetchError.name === 'AbortError') throw new GeminiApiError('timeout', 'The request timed out after 30 seconds. Retry when ready.');
+        if (!navigator.onLine) throw new GeminiApiError('offline', 'You appear to be offline. Reconnect to the internet, then retry.');
+        throw new GeminiApiError('network', 'Could not reach Gemini. Check your connection, then retry.');
     } finally {
         clearTimeout(timeoutId);
     }
 
     if (!response.ok) {
-        let errorMsg = "Failed to connect to AI service.";
-        try {
-            const errData = await response.json();
-            if (errData.error && errData.error.message) {
-                errorMsg = errData.error.message;
-            } else {
-                errorMsg = `API Error: ${response.status} ${response.statusText}`;
-            }
-        } catch (e) {
-            if (response.status === 400) errorMsg = "Invalid request. Check your API key or input.";
-            else if (response.status === 403) errorMsg = "Unauthorized. Please check your API key.";
-            else errorMsg = `API Error: ${response.status}`;
+        if (response.status === 400 || response.status === 403) {
+            throw new GeminiApiError('invalid_key', 'Gemini rejected the request. Check your API key and model in Settings.', false);
         }
-        throw new Error(errorMsg);
+        if (response.status === 429) throw new GeminiApiError('rate_limit', 'Gemini is receiving too many requests. Wait a moment, then retry.');
+        if (response.status >= 500) throw new GeminiApiError('server', 'Gemini is temporarily unavailable. Retry in a moment.');
+        throw new GeminiApiError('request', `Gemini could not process the request (HTTP ${response.status}). Check your input and retry.`, response.status >= 500);
     }
 
-    const data = await response.json();
-    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-        return data.candidates[0].content.parts[0].text;
-    } else {
-        throw new Error("No response generated. Try rephrasing your input.");
+    let data;
+    try {
+        data = await response.json();
+    } catch {
+        throw new GeminiApiError('empty_response', 'Gemini returned an unreadable response. Retry.');
     }
+    const candidate = data.candidates?.[0];
+    const text = candidate?.content?.parts?.map(part => part.text || '').join('').trim();
+    if (text) return text;
+    if (candidate?.finishReason === 'SAFETY') {
+        throw new GeminiApiError('blocked', 'Gemini blocked this response for safety reasons. Rephrase your input and retry.', false);
+    }
+    throw new GeminiApiError('empty_response', 'Gemini returned no usable text. Retry with different input.');
 }
 
 /* History */
